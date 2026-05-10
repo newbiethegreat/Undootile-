@@ -112,7 +112,8 @@
 <body>
 
 <div id="main-menu-overlay">
-    <div style="color: white; font-size: 32px; font-weight: bold; margin-bottom: 40px; text-align: center; letter-spacing: 2px;">CHOOSE YOUR<br>OPPONENT</div>
+    <div style="color: white; font-size: 32px; font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 2px;">CHOOSE YOUR<br>OPPONENT</div>
+    <div style="color: #666; font-size: 14px; margin-bottom: 30px; letter-spacing: 1px;">CREATED BY NEWBIE</div>
     <button class="diff-btn easy" onclick="startGame('DUMMY')">THE DUMMY (EASY)</button>
     <button class="diff-btn normal" onclick="startGame('SKELETON')">THE SKELETON (NORMAL)</button>
     <button class="diff-btn hard" onclick="startGame('KNIGHT')">THE KNIGHT (HARD)</button>
@@ -811,13 +812,10 @@
         turnCount++;
 
         const loop = () => {
-            // CRITICAL CHANGE: Even if game is over, we check if soul is still visible to finish turn visuals
-            // but we stop if state explicitly changed to MENU or VICTORY
             if (state !== 'DODGING' && state !== 'GAMEOVER') return;
             
             t++;
             
-            // Still allow movement if not game over
             if (state === 'DODGING') {
                 if (isBlueSoul) {
                     velocity.y += 0.45;
@@ -835,10 +833,7 @@
                 soul.style.top = soulPos.y + 'px';
             }
 
-            // CONTINUOUS ATTACKS: Run the pattern logic regardless of HP
             currentPatternFn(t, currentPhase); 
-            
-            // Collision logic now handles HP reduction without breaking the loop
             checkCollisions();
 
             if (invul > 0) { 
@@ -846,11 +841,9 @@
                 soul.style.opacity = t % 4 < 2 ? 0.3 : 1; 
             } else soul.style.opacity = 1;
 
-            // Turn duration check
             if (t < 400) {
                 requestAnimationFrame(loop);
             } else {
-                // Only end turn and return to menu if we didn't die
                 if (state !== 'GAMEOVER') endTurn();
             }
         };
@@ -858,9 +851,8 @@
     }
 
     function checkCollisions() {
-        // We still check collisions even in GAMEOVER to show the damage visuals if the player keeps touching things
         if (state === 'MENU' || state === 'VICTORY' || invul > 0) {
-            updateProjectilePositions(); // Just move them, don't check hits
+            updateProjectilePositions(); 
             return;
         }
         
@@ -887,12 +879,11 @@
                     playSoundEffect('hurt');
                     const baseDamage = p.type.includes('beam') ? 5 : 3;
                     hp = Math.max(0, hp - Math.ceil(baseDamage * dmgMult));
-                    invul = 25; // 25 frames of i-frames
+                    invul = 25; 
                     updateHPDisplay();
                     
                     if (hp <= 0) { 
                         triggerGameOver(); 
-                        // Note: Loop continues even in triggerGameOver now!
                     }
                 }
             }
@@ -914,12 +905,9 @@
 
     function triggerGameOver() {
         gameOver = true;
-        // We set state to GAMEOVER but the loop in startDodge now checks for this state 
-        // to keep the visuals running while showing the overlay
         state = 'GAMEOVER';
         gameOverOverlay.style.display = 'flex';
         controls.style.display = 'none';
-        // soul.style.display = 'none'; // Keep soul visible for a moment
     }
 
     function triggerVictory() {
