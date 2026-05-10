@@ -74,7 +74,7 @@
 
         /* Animation Intro Styles */
         #intro-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 300; text-align: center; padding: 20px; box-sizing: border-box; }
-        .intro-text { font-size: 18px; margin-bottom: 20px; color: white; min-height: 60px; max-width: 400px; }
+        .intro-text { font-size: 18px; margin-bottom: 20px; color: white; min-height: 80px; max-width: 400px; line-height: 1.5; }
         #intro-anim-container { width: 200px; height: 150px; border: 3px solid white; position: relative; margin-bottom: 30px; overflow: hidden; background: #000; }
         #intro-soul { 
             position: absolute; width: 16px; height: 16px; background: var(--ui-red);
@@ -120,7 +120,6 @@
     <div class="intro-text" id="intro-msg">Welcome, Human.</div>
     <div id="intro-anim-container">
         <div id="intro-soul"></div>
-        <!-- Dynamic tutorial elements go here -->
     </div>
     <button class="intro-skip-btn" onclick="startGameDirectly()">SKIP TUTORIAL</button>
 </div>
@@ -187,19 +186,16 @@
     let maxHp = 92;
     let enemyHp = 300;
     let maxEnemyHp = 300;
-    let dmgMult = 1;
     let isBlueSoul = false;
     let soulPos = { x: 142, y: 140 };
     let velocity = { x: 0, y: 0 };
     let inputDir = { x: 0, y: 0 };
     
-    let turnCount = 0;
     let projectiles = [];
     let invul = 0;
-    let gameOver = false;
-    let gameWon = false;
     let currentPhase = 1;
     let introTimer = null;
+    let introStep = 0;
 
     const inventory = [];
 
@@ -237,9 +233,9 @@
     };
 
     const MUSIC_THEMES = {
-        'DUMMY': { tempo: 130, type: 'square', seq: ['A3','C4','D4','D#4','E4','C4','A3','G3'], bass: ['A2','E3'] },
-        'SKELETON': { tempo: 110, type: 'square', seq: ['D4','D4','D5','A4','G#4','G4','F4','D4'], bass: ['D3','C3','B2','A#2'] },
-        'KNIGHT': { tempo: 100, type: 'sawtooth', seq: ['A4','E5','D5','C5','B4','C5','B4','G4'], bass: ['A2','F2','G2','E2'] }
+        'DUMMY': { tempo: 130, type: 'square', seq: ['A3','C4','D4','D#4','E4','C4','A3','G3'] },
+        'SKELETON': { tempo: 110, type: 'square', seq: ['D4','D4','D5','A4','G#4','G4','F4','D4'] },
+        'KNIGHT': { tempo: 100, type: 'sawtooth', seq: ['A4','E5','D5','C5','B4','C5','B4','G4'] }
     };
 
     function toggleMute() {
@@ -255,7 +251,7 @@
         const theme = MUSIC_THEMES[character];
         let seqIndex = 0;
         const playNextNote = () => {
-            if (gameOver || gameWon || state === 'INTRO' || state === 'MAIN_MENU') return;
+            if (state !== 'MENU' && state !== 'DODGING' && state !== 'ATTACKING') return;
             let speedMod = (currentPhase - 1) * 0.1;
             if (!isMuted && audioCtx.state === 'running') {
                 const osc = audioCtx.createOscillator();
@@ -289,59 +285,60 @@
         'KNIGHT': `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M20 30 L80 30 L65 90 L35 90 Z" fill="#c0c0c0" stroke="#808080" stroke-width="3"/><circle id="knight-eye" cx="50" cy="50" r="4" fill="var(--ui-cyan)"/></svg>`
     };
 
+    const introMessages = [
+        "This is your SOUL. The very culmination of your being!",
+        "Use the joystick to dodge the WHITE projectiles.",
+        "Stay still for BLUE ones, and MOVE for ORANGE ones!",
+        "If your SOUL is BLUE, you must JUMP to survive gravity.",
+        "Stay determined... The battle is about to begin!"
+    ];
+
     function showIntro(character) {
         currentCharacter = character;
+        state = 'INTRO';
+        introStep = 0;
+        
         mainMenuOverlay.style.display = 'none';
         introOverlay.style.display = 'flex';
         backToMenuBtn.style.display = 'block';
-        state = 'INTRO';
         
-        let step = 0;
-        const messages = [
-            "This is your SOUL. The very culmination of your being!",
-            "Use the joystick to dodge the WHITE projectiles.",
-            "Stay still for BLUE ones, and MOVE for ORANGE ones!",
-            "If your SOUL is BLUE, you must JUMP to survive gravity.",
-            "Stay determined... The battle is about to begin!"
-        ];
+        nextIntroStep();
+    }
 
-        const nextStep = () => {
-            if (state !== 'INTRO') return;
-            introMsg.innerText = messages[step];
-            
-            const temp = introAnimContainer.querySelectorAll('.temp-anim');
-            temp.forEach(t => t.remove());
+    function nextIntroStep() {
+        if (state !== 'INTRO') return;
+        
+        introMsg.innerText = introMessages[introStep];
+        const temp = introAnimContainer.querySelectorAll('.temp-anim');
+        temp.forEach(t => t.remove());
+        introSoul.style.animation = 'none';
+        introSoul.style.background = 'var(--ui-red)';
 
-            if (step === 1) {
-                introSoul.animate([{left: '20px'}, {left: '160px'}, {left: '92px'}], {duration: 2000, iterations: Infinity});
-            } else if (step === 2) {
-                introSoul.style.animation = 'none';
-                const b = document.createElement('div'); b.className = 'bone blue temp-anim'; b.style.cssText = 'position:absolute; width:10px; height:150px; left:0; top:0;';
-                const o = document.createElement('div'); o.className = 'bone orange temp-anim'; o.style.cssText = 'position:absolute; width:10px; height:150px; left:190px; top:0;';
-                introAnimContainer.appendChild(b); introAnimContainer.appendChild(o);
-                b.animate([{left: '0px'}, {left: '200px'}], {duration: 3000, iterations: Infinity});
-                o.animate([{left: '200px'}, {left: '0px'}], {duration: 3000, iterations: Infinity});
-            } else if (step === 3) {
-                introSoul.style.background = 'var(--ui-blue)';
-                introSoul.animate([{top: '130px'}, {top: '60px'}, {top: '130px'}], {duration: 1000, iterations: Infinity});
-            } else {
-                introSoul.style.background = 'var(--ui-red)';
-                introSoul.style.animation = 'none';
-            }
+        if (introStep === 1) {
+            introSoul.animate([{left: '20px'}, {left: '160px'}, {left: '92px'}], {duration: 2000, iterations: Infinity});
+        } else if (introStep === 2) {
+            const b = document.createElement('div'); b.className = 'bone blue temp-anim'; b.style.cssText = 'position:absolute; width:10px; height:150px; left:0; top:0;';
+            const o = document.createElement('div'); o.className = 'bone orange temp-anim'; o.style.cssText = 'position:absolute; width:10px; height:150px; left:190px; top:0;';
+            introAnimContainer.appendChild(b); introAnimContainer.appendChild(o);
+            b.animate([{left: '0px'}, {left: '200px'}], {duration: 3000, iterations: Infinity});
+            o.animate([{left: '200px'}, {left: '0px'}], {duration: 3000, iterations: Infinity});
+        } else if (introStep === 3) {
+            introSoul.style.background = 'var(--ui-blue)';
+            introSoul.animate([{top: '130px'}, {top: '60px'}, {top: '130px'}], {duration: 1000, iterations: Infinity});
+        }
 
-            step++;
-            if (step < messages.length) {
-                introTimer = setTimeout(nextStep, 3500);
-            } else {
-                introTimer = setTimeout(startGameDirectly, 3500);
-            }
-        };
-        nextStep();
+        introStep++;
+        if (introStep < introMessages.length) {
+            introTimer = setTimeout(nextIntroStep, 3500);
+        } else {
+            introTimer = setTimeout(startGameDirectly, 3500);
+        }
     }
 
     function goBackToMenu() {
         clearTimeout(introTimer);
         if (musicTimer) clearTimeout(musicTimer);
+        
         state = 'MAIN_MENU';
         mainMenuOverlay.style.display = 'flex';
         introOverlay.style.display = 'none';
@@ -353,6 +350,7 @@
         victoryOverlay.style.display = 'none';
         attackGame.style.display = 'none';
         battleArea.classList.remove('shrunk');
+        
         projectiles.forEach(p => p.el.remove());
         projectiles = [];
         
@@ -372,7 +370,8 @@
         currentPhase = 1;
         if (character === 'DUMMY') { maxHp = 99; enemyHp = 150; maxEnemyHp = 150; }
         else if (character === 'SKELETON') { maxHp = 92; enemyHp = 300; maxEnemyHp = 300; }
-        else { maxHp = 50; enemyHp = 600; maxEnemyHp = 600; dmgMult = 1.8; }
+        else { maxHp = 50; enemyHp = 600; maxEnemyHp = 600; }
+        
         hp = maxHp;
         enemyHpFill.style.width = '100%';
         enemySprite.innerHTML = CHARACTER_SVGS[character];
@@ -391,23 +390,19 @@
     }
 
     const allPatterns = {
-        'DUMMY': [{ minPhase: 1, maxPhase: 3, fn: (t) => {
-            if (t % 40 === 0) spawnProjectile('bone', 310, Math.random() * 160, 15, 20, -4, 0);
-        }}],
+        'DUMMY': [{ fn: (t) => { if (t % 40 === 0) spawnProjectile('bone', 310, Math.random() * 160, 15, 20, -4, 0); } }],
         'SKELETON': [
-            { minPhase: 1, maxPhase: 4, fn: (t, p) => {
+            { fn: (t, p) => {
                 setSoulMode(false);
-                if (t % Math.max(10, 30 - p*5) === 0) {
-                    spawnProjectile('bone', 310, Math.random() * 180, 15, 25, -6 - p, 0);
-                }
+                if (t % Math.max(10, 30 - p*5) === 0) spawnProjectile('bone', 310, Math.random() * 180, 15, 25, -6 - p, 0);
             }},
-            { minPhase: 2, maxPhase: 4, fn: (t, p) => {
+            { fn: (t, p) => {
                 setSoulMode(true);
                 if (t % 40 === 0) spawnProjectile('bone', 310, 160, 15, 40, -7, 0);
                 if (t % 100 === 0) spawnBlaster('h', 80);
             }}
         ],
-        'KNIGHT': [{ minPhase: 1, maxPhase: 3, fn: (t, p) => {
+        'KNIGHT': [{ fn: (t, p) => {
             if (t % 15 === 0) {
                 let side = Math.random() > 0.5 ? -30 : 310;
                 spawnProjectile('bone', side, soulPos.y, 30, 12, side < 0 ? 10 : -10, 0);
@@ -540,7 +535,7 @@
     }
 
     function triggerGameOver() { state = 'GAMEOVER'; gameOverOverlay.style.display = 'flex'; }
-    function triggerVictory() { gameWon = true; victoryOverlay.style.display = 'flex'; }
+    function triggerVictory() { state = 'VICTORY'; victoryOverlay.style.display = 'flex'; }
 
     function updateHPDisplay() {
         document.getElementById('hp-bar-fill').style.width = (hp/maxHp)*100 + '%';
@@ -548,7 +543,7 @@
     }
 
     const handleInput = (e) => {
-        if (state !== 'DODGING') return;
+        if (state !== 'DODGING' && state !== 'INTRO') return;
         const t = e.touches[0]; const r = joystick.getBoundingClientRect();
         const dx = t.clientX - (r.left + r.width/2); const dy = t.clientY - (r.top + r.height/2);
         const d = Math.min(Math.sqrt(dx*dx+dy*dy), 40); const a = Math.atan2(dy, dx);
