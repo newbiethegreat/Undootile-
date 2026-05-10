@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Undertale Hard Mode - Continuous Attacks</title>
+    <title>Undertale Hard Mode - Advanced</title>
     <style>
         :root { 
             --ui-white: #fff; --ui-yellow: #ff0; --ui-red: #f00; 
@@ -17,7 +17,9 @@
         #enemy-hp-bar { width: 200px; height: 10px; background: #333; border: 2px solid white; margin-top: 10px; }
         #enemy-hp-fill { width: 100%; height: 100%; background: var(--ui-green); transition: width 0.3s; }
 
-        #battle-area { position: relative; width: 300px; height: 200px; border: 5px solid white; background: black; overflow: hidden; transition: border-color 0.2s, transform 0.1s; display: flex; flex-direction: column; }
+        #battle-area { position: relative; width: 300px; height: 200px; border: 5px solid white; background: black; overflow: hidden; transition: all 0.4s ease-in-out; display: flex; flex-direction: column; }
+        #battle-area.shrunk { width: 180px; height: 180px; }
+        
         #dialogue-text { padding: 15px; font-size: 16px; line-height: 1.4; flex-grow: 1; overflow-y: auto; }
         
         #soul { 
@@ -36,16 +38,8 @@
             0%, 100% { background: rgba(255, 255, 255, 0.05); }
             50% { background: rgba(255, 255, 255, 0.25); }
         }
-        @keyframes beam-fire-h {
-            0% { transform: scaleY(0.1); opacity: 1; }
-            20% { transform: scaleY(1.2); opacity: 1; }
-            100% { transform: scaleY(0.8); opacity: 0; }
-        }
-        @keyframes beam-fire-v {
-            0% { transform: scaleX(0.1); opacity: 1; }
-            20% { transform: scaleX(1.2); opacity: 1; }
-            100% { transform: scaleX(0.8); opacity: 0; }
-        }
+        @keyframes beam-fire-h { 0% { transform: scaleY(0.1); opacity: 1; } 20% { transform: scaleY(1.2); opacity: 1; } 100% { transform: scaleY(0.8); opacity: 0; } }
+        @keyframes beam-fire-v { 0% { transform: scaleX(0.1); opacity: 1; } 20% { transform: scaleX(1.2); opacity: 1; } 100% { transform: scaleX(0.8); opacity: 0; } }
 
         .blaster-warn { position: absolute; z-index: 1; animation: warn-flicker 0.1s infinite; border: 1px dashed rgba(255,255,255,0.4); }
         .blaster-beam { position: absolute; background: white; z-index: 8; box-shadow: 0 0 20px white; pointer-events: none; }
@@ -71,17 +65,23 @@
 
         .full-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
         .restart-btn { margin-top: 20px; padding: 12px 24px; border: 2px solid white; background: black; color: white; font-family: inherit; font-size: 18px; cursor: pointer; text-transform: uppercase; pointer-events: auto; }
-        .restart-btn:hover { background: #333; }
-        .restart-btn:active { background: white; color: black; }
 
         #main-menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
         .diff-btn { background: black; border: 2px solid; padding: 15px 30px; margin: 10px; font-size: 18px; font-family: inherit; cursor: pointer; text-transform: uppercase; width: 280px; font-weight: bold; transition: all 0.1s; }
         .diff-btn.easy { border-color: var(--ui-green); color: var(--ui-green); }
-        .diff-btn.easy:active { background: var(--ui-green); color: black; }
         .diff-btn.normal { border-color: var(--ui-yellow); color: var(--ui-yellow); }
-        .diff-btn.normal:active { background: var(--ui-yellow); color: black; }
         .diff-btn.hard { border-color: var(--ui-red); color: var(--ui-red); }
-        .diff-btn.hard:active { background: var(--ui-red); color: black; }
+
+        /* Animation Intro Styles */
+        #intro-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 300; text-align: center; padding: 20px; box-sizing: border-box; }
+        .intro-text { font-size: 18px; margin-bottom: 20px; color: white; min-height: 60px; max-width: 400px; }
+        #intro-anim-container { width: 200px; height: 150px; border: 3px solid white; position: relative; margin-bottom: 30px; overflow: hidden; background: #000; }
+        #intro-soul { 
+            position: absolute; width: 16px; height: 16px; background: var(--ui-red);
+            clip-path: path('M8 2.1c1.1-1.1 2.9-1.1 4 0 1.1 1.1 1.1 2.9 0 4L8 10.2 4 6.1c-1.1-1.1-1.1-2.9 0-4 1.1-1.1 2.9-1.1 4 0z');
+            left: 92px; top: 67px;
+        }
+        .intro-skip-btn { position: absolute; bottom: 30px; border: 1px solid #666; color: #666; background: transparent; padding: 8px 16px; font-family: inherit; cursor: pointer; }
 
         #controls { position: fixed; bottom: 15px; width: 100%; display: flex; justify-content: space-around; pointer-events: none; z-index: 20; }
         .touch-zone { width: 110px; height: 110px; background: rgba(255,255,255,0.05); border-radius: 50%; pointer-events: auto; position: relative; border: 1px solid rgba(255,255,255,0.15); }
@@ -90,23 +90,20 @@
 
         #flash { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; pointer-events: none; opacity: 0; z-index: 100; transition: opacity 0.05s; }
 
+        /* Phases Visuals */
         .SKELETON.phase-2 #right-eye { fill: var(--ui-blue); filter: drop-shadow(0 0 5px var(--ui-blue)); }
         .SKELETON.phase-3 #right-eye { fill: var(--ui-red); filter: drop-shadow(0 0 8px var(--ui-red)); }
-        .SKELETON.phase-3 #battle-area { border-color: var(--ui-red); }
         .SKELETON.phase-4 #right-eye { fill: var(--ui-purple); filter: drop-shadow(0 0 10px var(--ui-purple)); animation: warn-flicker 0.2s infinite; }
-        .SKELETON.phase-4 #battle-area { border-color: var(--ui-purple); animation: warn-flicker 0.4s infinite; }
         .SKELETON.phase-4 #enemy-sprite { animation: float-shake 0.2s infinite; }
         
         .KNIGHT.phase-2 #knight-eye { fill: var(--ui-orange); filter: drop-shadow(0 0 8px var(--ui-orange)); }
         .KNIGHT.phase-3 #knight-eye { fill: var(--ui-red); filter: drop-shadow(0 0 12px var(--ui-red)); animation: warn-flicker 0.2s infinite;}
-        .KNIGHT.phase-3 #battle-area { border-color: var(--ui-red); animation: warn-flicker 0.3s infinite; }
 
         @keyframes float-shake { 0% {transform: translate(2px, 1px)} 50% {transform: translate(-2px, -1px)} 100% {transform: translate(2px, 1px)} }
 
-        .top-btn { position: absolute; top: 15px; background: black; color: white; border: 2px solid white; padding: 8px 12px; font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer; text-transform: uppercase; z-index: 50; display: none; }
+        .top-btn { position: absolute; top: 15px; background: black; color: white; border: 2px solid white; padding: 8px 12px; font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer; text-transform: uppercase; z-index: 400; display: none; }
         #back-to-menu-btn { left: 15px; }
         #mute-btn { right: 15px; border-color: var(--ui-cyan); color: var(--ui-cyan); }
-        .top-btn:active { background: white; color: black; }
     </style>
 </head>
 <body>
@@ -114,12 +111,21 @@
 <div id="main-menu-overlay">
     <div style="color: white; font-size: 32px; font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 2px;">CHOOSE YOUR<br>OPPONENT</div>
     <div style="color: #666; font-size: 14px; margin-bottom: 30px; letter-spacing: 1px;">CREATED BY NEWBIE</div>
-    <button class="diff-btn easy" onclick="startGame('DUMMY')">THE DUMMY (EASY)</button>
-    <button class="diff-btn normal" onclick="startGame('SKELETON')">THE SKELETON (NORMAL)</button>
-    <button class="diff-btn hard" onclick="startGame('KNIGHT')">THE KNIGHT (HARD)</button>
+    <button class="diff-btn easy" onclick="showIntro('DUMMY')">THE DUMMY (EASY)</button>
+    <button class="diff-btn normal" onclick="showIntro('SKELETON')">THE SKELETON (NORMAL)</button>
+    <button class="diff-btn hard" onclick="showIntro('KNIGHT')">THE KNIGHT (HARD MODE)</button>
 </div>
 
-<button id="back-to-menu-btn" class="top-btn" onclick="resetGame()">&lt; BACK</button>
+<div id="intro-overlay">
+    <div class="intro-text" id="intro-msg">Welcome, Human.</div>
+    <div id="intro-anim-container">
+        <div id="intro-soul"></div>
+        <!-- Dynamic tutorial elements go here -->
+    </div>
+    <button class="intro-skip-btn" onclick="startGameDirectly()">SKIP TUTORIAL</button>
+</div>
+
+<button id="back-to-menu-btn" class="top-btn" onclick="goBackToMenu()">&lt; BACK</button>
 <button id="mute-btn" class="top-btn" onclick="toggleMute()">🎵 MUTE</button>
 
 <div id="game-screen">
@@ -186,19 +192,14 @@
     let soulPos = { x: 142, y: 140 };
     let velocity = { x: 0, y: 0 };
     let inputDir = { x: 0, y: 0 };
-    let lastInputDir = { x: 0, y: 0 };
     
-    // Core logic tracking vars
-    let isJumping = false;
     let turnCount = 0;
-    let lastPattern = null;
-    let forceRepeat = false; 
-    let itemUsedThisRound = false; 
     let projectiles = [];
     let invul = 0;
     let gameOver = false;
     let gameWon = false;
     let currentPhase = 1;
+    let introTimer = null;
 
     const inventory = [];
 
@@ -209,7 +210,6 @@
     const jumpBtn = document.getElementById('jump-btn');
     const controls = document.getElementById('controls');
     const itemMenu = document.getElementById('item-menu');
-    const actMenu = document.getElementById('act-menu');
     const diagText = document.getElementById('dialogue-text');
     const attackGame = document.getElementById('attack-game');
     const attackCursor = document.getElementById('attack-cursor');
@@ -220,351 +220,202 @@
     const mainMenuOverlay = document.getElementById('main-menu-overlay');
     const backToMenuBtn = document.getElementById('back-to-menu-btn');
     const muteBtn = document.getElementById('mute-btn');
+    const introOverlay = document.getElementById('intro-overlay');
+    const introSoul = document.getElementById('intro-soul');
+    const introMsg = document.getElementById('intro-msg');
+    const introAnimContainer = document.getElementById('intro-anim-container');
 
-    // --- AUDIO SYSTEM ---
     let audioCtx;
     let isMuted = false;
     let musicTimer;
     
     const NOTES = {
-        'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
-        'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
-        'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
-        'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00
+        'E2': 82.41, 'F2': 87.31, 'G2': 98.00, 'A2': 110.00, 'B2': 123.47,
+        'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+        'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+        'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'A5': 880.00, 'G#4': 415.3, 'D#4': 311.1
     };
 
     const MUSIC_THEMES = {
-        'DUMMY': { 
-            tempo: 125, type: 'square', bassType: 'triangle',
-            seq: [
-                'A3',null,'C4',null, 'D4',null,'D#4','E4', null,'C4',null,'A3', null,'G3',null,'A3',
-                'A3',null,'C4',null, 'D4',null,'D#4','E4', null,'G4',null,'E4', null,'D4',null,'C4',
-                'E4',null,'D#4',null, 'D4',null,'C4',null, 'A3',null,'G3',null, 'A3',null,null,null
-            ],
-            bass: [
-                'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
-                'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
-                'E3',null,'D#3',null, 'D3',null,'C3',null, 'A2',null,'E2',null, 'A2',null,null,null
-            ]
-        },
-        'SKELETON': { 
-            tempo: 110, type: 'square', bassType: 'square',
-            seq: [
-                'D4','D4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'C4','C4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'B3','B3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'A#3','A#3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4'
-            ],
-            bass: [
-                'D3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'C3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'B2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'A#2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null
-            ]
-        },
-        'KNIGHT': { 
-            tempo: 105, type: 'sawtooth', bassType: 'square',
-            seq: [
-                'A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','B4','G4', 'A4',null,null,null,
-                'A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','D5','E5', 'A5',null,null,null,
-                'F4',null,'C5',null,'B4',null,'A4',null, 'G4','A4','G4','E4', 'F4',null,null,null
-            ],
-            bass: [
-                'A2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null, 
-                'F2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null,
-                'F2',null,null,null, null,null,null,null, 'C3',null,null,null, 'E3',null,null,null
-            ]
-        }
+        'DUMMY': { tempo: 130, type: 'square', seq: ['A3','C4','D4','D#4','E4','C4','A3','G3'], bass: ['A2','E3'] },
+        'SKELETON': { tempo: 110, type: 'square', seq: ['D4','D4','D5','A4','G#4','G4','F4','D4'], bass: ['D3','C3','B2','A#2'] },
+        'KNIGHT': { tempo: 100, type: 'sawtooth', seq: ['A4','E5','D5','C5','B4','C5','B4','G4'], bass: ['A2','F2','G2','E2'] }
     };
 
     function toggleMute() {
         isMuted = !isMuted;
         muteBtn.innerText = isMuted ? "🎵 UNMUTE" : "🎵 MUTE";
-        muteBtn.style.color = isMuted ? "gray" : "var(--ui-cyan)";
-        muteBtn.style.borderColor = isMuted ? "gray" : "var(--ui-cyan)";
-        if (isMuted && audioCtx) { audioCtx.suspend(); } 
-        else if (!isMuted && audioCtx) { audioCtx.resume(); }
+        if (isMuted && audioCtx) audioCtx.suspend(); 
+        else if (!isMuted && audioCtx) audioCtx.resume();
     }
 
     function playMusic(character) {
         if (musicTimer) clearTimeout(musicTimer);
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (isMuted) audioCtx.suspend(); else audioCtx.resume();
-
         const theme = MUSIC_THEMES[character];
         let seqIndex = 0;
-
-        const playSynth = (freq, type, duration, vol) => {
-            if (!freq) return;
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.value = freq;
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + duration + 0.1);
-        };
-
         const playNextNote = () => {
-            if (gameOver || gameWon) return;
-            let speedMod = (currentPhase - 1) * 0.12; 
-            if (currentPhase === 4) speedMod = 0.40;  
-            let currentTempo = theme.tempo * (1 - speedMod);
-            if (!isMuted) {
-                const note = theme.seq[seqIndex % theme.seq.length];
-                const bassNote = theme.bass[seqIndex % theme.bass.length];
-                let volMod = 1 + (currentPhase - 1) * 0.15;
-                let mType = theme.type;
-                if (currentPhase >= 3 && mType === 'triangle') mType = 'square';
-                if (currentPhase === 4) mType = 'sawtooth';
-                if (note) playSynth(NOTES[note], mType, (currentTempo / 1000) * 1.5, 0.05 * volMod);
-                if (bassNote) playSynth(NOTES[bassNote], theme.bassType, (currentTempo / 1000) * 3.5, 0.08 * volMod);
+            if (gameOver || gameWon || state === 'INTRO' || state === 'MAIN_MENU') return;
+            let speedMod = (currentPhase - 1) * 0.1;
+            if (!isMuted && audioCtx.state === 'running') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = theme.type;
+                osc.frequency.value = NOTES[theme.seq[seqIndex % theme.seq.length]] || 440;
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
             }
             seqIndex++;
-            musicTimer = setTimeout(playNextNote, currentTempo);
+            musicTimer = setTimeout(playNextNote, theme.tempo * (1 - speedMod));
         };
         playNextNote();
     }
 
     function playSoundEffect(type) {
-        if (isMuted || !audioCtx || gameOver || gameWon) return;
+        if (isMuted || !audioCtx || audioCtx.state !== 'running') return;
         const osc = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        osc.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
-
-        if (type === 'select') {
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-            osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'hurt') {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-            gainNode.gain.setValueAtTime(0.1, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-            osc.start(now); osc.stop(now + 0.2);
-        } else if (type === 'attack') {
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-            gainNode.gain.setValueAtTime(0.08, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc.start(now); osc.stop(now + 0.15);
-        } else if (type === 'heal') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-            osc.start(now); osc.stop(now + 0.3);
-        } else if (type === 'jump') {
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(300, now);
-            osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc.start(now); osc.stop(now + 0.15);
-        }
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'hurt') { osc.type = 'sawtooth'; osc.frequency.value = 100; gain.gain.value = 0.1; }
+        else { osc.type = 'sine'; osc.frequency.value = 400; gain.gain.value = 0.05; }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
     }
 
     const CHARACTER_SVGS = {
-        'DUMMY': `<svg viewBox="0 0 100 100" width="80" height="100"><ellipse cx="50" cy="50" rx="30" ry="40" fill="#d2b48c"/><line x1="50" y1="90" x2="50" y2="100" stroke="#8b4513" stroke-width="8"/><circle cx="35" cy="40" r="4" fill="#5c4033"/><circle cx="65" cy="40" r="4" fill="#5c4033"/><path d="M35 60 Q50 70 65 60" fill="none" stroke="#5c4033" stroke-width="3"/><path d="M30 30 L40 50 M70 30 L60 50" stroke="#5c4033" stroke-width="2"/></svg>`,
+        'DUMMY': `<svg viewBox="0 0 100 100" width="80" height="100"><ellipse cx="50" cy="50" rx="30" ry="40" fill="#d2b48c"/><circle cx="35" cy="40" r="4" fill="#5c4033"/><circle cx="65" cy="40" r="4" fill="#5c4033"/><path d="M35 60 Q50 70 65 60" fill="none" stroke="#5c4033" stroke-width="3"/></svg>`,
         'SKELETON': `<svg viewBox="0 0 100 100" width="80" height="100"><circle cx="50" cy="30" r="25" fill="white"/><path d="M35 55 L65 55 L70 95 L30 95 Z" fill="white"/><circle cx="40" cy="25" r="5" fill="black"/><circle id="right-eye" cx="60" cy="25" r="5" fill="black"/><path d="M40 42 Q50 48 60 42" fill="none" stroke="black" stroke-width="2"/></svg>`,
-        'KNIGHT': `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M20 30 L80 30 L65 90 L35 90 Z" fill="#c0c0c0" stroke="#808080" stroke-width="3"/><path d="M35 15 L65 15 L75 30 L25 30 Z" fill="#a9a9a9"/><path d="M45 40 L55 40 L55 65 L45 65 Z" fill="#000"/><path d="M35 40 L65 40" stroke="#000" stroke-width="4"/><circle id="knight-eye" cx="50" cy="50" r="4" fill="var(--ui-cyan)" filter="drop-shadow(0 0 5px var(--ui-cyan))"/><path d="M50 15 Q40 -5 20 10" fill="none" stroke="#ff0000" stroke-width="8" stroke-linecap="round"/></svg>`
+        'KNIGHT': `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M20 30 L80 30 L65 90 L35 90 Z" fill="#c0c0c0" stroke="#808080" stroke-width="3"/><circle id="knight-eye" cx="50" cy="50" r="4" fill="var(--ui-cyan)"/></svg>`
     };
 
-    function initInventory() {
-        inventory.length = 0;
-        inventory.push(
-            { name: 'Pie', hp: 999 }, { name: 'Steak', hp: 999 },
-            { name: 'Hero', hp: 999 }, { name: 'Noodles', hp: 999 },
-            { name: 'M.Candy', hp: 999 }, { name: 'Hot Dog', hp: 999 },
-            { name: 'Sea Tea', hp: 999 }, { name: 'GlmBrgr', hp: 999 }
-        );
-    }
-    initInventory();
+    function showIntro(character) {
+        currentCharacter = character;
+        mainMenuOverlay.style.display = 'none';
+        introOverlay.style.display = 'flex';
+        backToMenuBtn.style.display = 'block';
+        state = 'INTRO';
+        
+        let step = 0;
+        const messages = [
+            "This is your SOUL. The very culmination of your being!",
+            "Use the joystick to dodge the WHITE projectiles.",
+            "Stay still for BLUE ones, and MOVE for ORANGE ones!",
+            "If your SOUL is BLUE, you must JUMP to survive gravity.",
+            "Stay determined... The battle is about to begin!"
+        ];
 
-    document.getElementById('btn-gameover').addEventListener('click', resetGame);
-    document.getElementById('btn-victory').addEventListener('click', resetGame);
+        const nextStep = () => {
+            if (state !== 'INTRO') return;
+            introMsg.innerText = messages[step];
+            
+            const temp = introAnimContainer.querySelectorAll('.temp-anim');
+            temp.forEach(t => t.remove());
+
+            if (step === 1) {
+                introSoul.animate([{left: '20px'}, {left: '160px'}, {left: '92px'}], {duration: 2000, iterations: Infinity});
+            } else if (step === 2) {
+                introSoul.style.animation = 'none';
+                const b = document.createElement('div'); b.className = 'bone blue temp-anim'; b.style.cssText = 'position:absolute; width:10px; height:150px; left:0; top:0;';
+                const o = document.createElement('div'); o.className = 'bone orange temp-anim'; o.style.cssText = 'position:absolute; width:10px; height:150px; left:190px; top:0;';
+                introAnimContainer.appendChild(b); introAnimContainer.appendChild(o);
+                b.animate([{left: '0px'}, {left: '200px'}], {duration: 3000, iterations: Infinity});
+                o.animate([{left: '200px'}, {left: '0px'}], {duration: 3000, iterations: Infinity});
+            } else if (step === 3) {
+                introSoul.style.background = 'var(--ui-blue)';
+                introSoul.animate([{top: '130px'}, {top: '60px'}, {top: '130px'}], {duration: 1000, iterations: Infinity});
+            } else {
+                introSoul.style.background = 'var(--ui-red)';
+                introSoul.style.animation = 'none';
+            }
+
+            step++;
+            if (step < messages.length) {
+                introTimer = setTimeout(nextStep, 3500);
+            } else {
+                introTimer = setTimeout(startGameDirectly, 3500);
+            }
+        };
+        nextStep();
+    }
+
+    function goBackToMenu() {
+        clearTimeout(introTimer);
+        if (musicTimer) clearTimeout(musicTimer);
+        state = 'MAIN_MENU';
+        mainMenuOverlay.style.display = 'flex';
+        introOverlay.style.display = 'none';
+        backToMenuBtn.style.display = 'none';
+        muteBtn.style.display = 'none';
+        controls.style.display = 'none';
+        soul.style.display = 'none';
+        gameOverOverlay.style.display = 'none';
+        victoryOverlay.style.display = 'none';
+        attackGame.style.display = 'none';
+        battleArea.classList.remove('shrunk');
+        projectiles.forEach(p => p.el.remove());
+        projectiles = [];
+        
+        const introAnims = introAnimContainer.querySelectorAll('.temp-anim');
+        introAnims.forEach(a => a.remove());
+    }
+
+    function startGameDirectly() {
+        clearTimeout(introTimer);
+        introOverlay.style.display = 'none';
+        startGame(currentCharacter);
+    }
 
     function startGame(character) {
         currentCharacter = character;
-        document.getElementById('game-screen').className = currentCharacter;
-        if (character === 'DUMMY') {
-            maxHp = 99; enemyHp = 200; maxEnemyHp = 200; dmgMult = 0.8;
-            diagText.innerHTML = "* A magical training dummy brought to life.<br>* It wants to prove it's more than a punching bag.";
-        } else if (character === 'SKELETON') {
-            maxHp = 92; enemyHp = 300; maxEnemyHp = 300; dmgMult = 1.0;
-            diagText.innerHTML = "* A lazy, joke-telling skeleton.<br>* He promised to take it easy, but his glowing eye says otherwise.";
-        } else if (character === 'KNIGHT') {
-            maxHp = 50; enemyHp = 500; maxEnemyHp = 500; dmgMult = 1.5;
-            diagText.innerHTML = "* The Captain of the Guard blocks the way!<br>* Driven by fierce determination, she will protect her realm.";
-        }
+        document.getElementById('game-screen').className = character;
+        currentPhase = 1;
+        if (character === 'DUMMY') { maxHp = 99; enemyHp = 150; maxEnemyHp = 150; }
+        else if (character === 'SKELETON') { maxHp = 92; enemyHp = 300; maxEnemyHp = 300; }
+        else { maxHp = 50; enemyHp = 600; maxEnemyHp = 600; dmgMult = 1.8; }
         hp = maxHp;
+        enemyHpFill.style.width = '100%';
         enemySprite.innerHTML = CHARACTER_SVGS[character];
-        mainMenuOverlay.style.display = 'none';
         backToMenuBtn.style.display = 'block';
         muteBtn.style.display = 'block';
         state = 'MENU';
         updateHPDisplay();
-        enemyHpFill.style.width = '100%';
         playMusic(character);
+        initInventory();
+        diagText.innerHTML = "* The battle begins.";
+    }
+
+    function initInventory() {
+        inventory.length = 0;
+        inventory.push({ name: 'Pie', hp: 99 }, { name: 'Steak', hp: 99 }, { name: 'Hero', hp: 99 });
     }
 
     const allPatterns = {
-        'DUMMY': [
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    let freq = Math.floor(Math.max(15, 45 - phase * 8));
-                    let speed = -3.5 - phase * 0.5;
-                    if (t % freq === 0) spawnProjectile('bone', 310, Math.random() * 160 + 20, 15, 20, speed, 0); 
-                }
-            },
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(true);
-                    let freq = Math.floor(Math.max(20, 50 - phase * 8));
-                    let speed = -4 - phase * 0.5;
-                    if (t % freq === 0) {
-                        let h = Math.random() > 0.5 ? 45 : 25;
-                        spawnProjectile('bone', 310, 200 - h, 15, h, speed, 0); 
-                    }
-                }
-            },
-            {
-                minPhase: 2, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    let bFreq = Math.floor(Math.max(30, 80 - phase * 10));
-                    let pFreq = Math.floor(Math.max(25, 60 - phase * 10));
-                    if (t % bFreq === 0) spawnBlaster('v', soulPos.x + 8);
-                    if (t % pFreq === 0) spawnProjectile('bone', 310, 150, 15, 30, -5 - phase * 0.5, 0);
-                }
-            }
-        ],
+        'DUMMY': [{ minPhase: 1, maxPhase: 3, fn: (t) => {
+            if (t % 40 === 0) spawnProjectile('bone', 310, Math.random() * 160, 15, 20, -4, 0);
+        }}],
         'SKELETON': [
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    let bFreq = Math.floor(Math.max(8, 20 - phase * 3));
-                    let pFreq = Math.floor(Math.max(6, 16 - phase * 3));
-                    let speed = 5 + phase;
-                    if (t % bFreq === 0) {
-                        const isH = Math.random() > 0.5;
-                        spawnBlaster(isH ? 'h' : 'v', Math.random() * (isH ? 200 : 300));
-                    }
-                    if (t % pFreq === 0) {
-                        let isBlue = Math.random() > 0.5;
-                        let side = Math.random() > 0.5 ? -20 : 310;
-                        let vx = side < 0 ? speed : -speed;
-                        spawnProjectile(isBlue ? 'bone blue' : 'bone orange', side, Math.random() * 180, 15, 20, vx, 0);
-                    }
+            { minPhase: 1, maxPhase: 4, fn: (t, p) => {
+                setSoulMode(false);
+                if (t % Math.max(10, 30 - p*5) === 0) {
+                    spawnProjectile('bone', 310, Math.random() * 180, 15, 25, -6 - p, 0);
                 }
-            },
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(true);
-                    let pFreq = Math.floor(Math.max(12, 28 - phase * 4));
-                    let bFreq = Math.floor(Math.max(20, 50 - phase * 5));
-                    let speed = 6 + phase;
-                    if (t % pFreq === 0) {
-                        let isTall = Math.random() > 0.5;
-                        let h = isTall ? 65 : 35; 
-                        spawnProjectile('bone', 310, 200 - h, 14, h, -speed, 0);
-                    }
-                    if (t % bFreq === 0) spawnBlaster('h', Math.random() * 150);
-                }
-            },
-            {
-                minPhase: 2, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    let pFreq = Math.floor(Math.max(2, 5 - phase));
-                    let distFreq = Math.floor(Math.max(15, 35 - phase * 5));
-                    if (t % pFreq === 0 && t < 250) {
-                        const angle = t * (0.15 + phase * 0.02);
-                        const dist = 60;
-                        spawnProjectile('bone', 150 + Math.cos(angle) * dist, 100 + Math.sin(angle) * dist, 12, 12, 0, 0);
-                        if (projectiles.length > 35) {
-                            const old = projectiles.shift();
-                            if (old && old.el) old.el.remove();
-                        }
-                    }
-                    if (t % distFreq === 0) spawnBlaster('v', soulPos.x + 8);
-                }
-            },
-            {
-                minPhase: 4, maxPhase: 4, 
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    if (t % 6 === 0) {
-                        const isH = Math.random() > 0.5;
-                        spawnBlaster(isH ? 'h' : 'v', Math.random() * (isH ? 200 : 300));
-                    }
-                    if (t % 4 === 0) {
-                        let side = Math.random() > 0.5 ? -20 : 310;
-                        let speed = side < 0 ? 9 : -9;
-                        spawnProjectile(Math.random() > 0.5 ? 'bone blue' : 'bone orange', side, Math.random() * 200, 15, 25, speed, 0);
-                        spawnProjectile('bone', Math.random() * 300, -20, 15, 25, 0, 9); 
-                    }
-                    if (t % 12 === 0) {
-                        spawnProjectile('bone', -20, soulPos.y, 20, 20, 12, 0);
-                        spawnProjectile('bone', 320, soulPos.y, 20, 20, -12, 0);
-                    }
-                }
-            }
+            }},
+            { minPhase: 2, maxPhase: 4, fn: (t, p) => {
+                setSoulMode(true);
+                if (t % 40 === 0) spawnProjectile('bone', 310, 160, 15, 40, -7, 0);
+                if (t % 100 === 0) spawnBlaster('h', 80);
+            }}
         ],
-        'KNIGHT': [
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(false);
-                    let f1 = Math.floor(Math.max(4, 12 - phase * 2));
-                    let f2 = Math.floor(Math.max(6, 16 - phase * 2));
-                    let speed = 8 + phase * 2;
-                    if (t % f1 === 0) {
-                        let side = Math.random() > 0.5 ? -30 : 310;
-                        let vx = side < 0 ? speed : -speed;
-                        spawnProjectile('bone', side, soulPos.y + 2, 30, 12, vx, 0);
-                    }
-                    if (t % f2 === 0) {
-                        let side = Math.random() > 0.5 ? -30 : 220;
-                        let vy = side < 0 ? speed : -speed;
-                        spawnProjectile('bone', soulPos.x + 2, side, 12, 30, 0, vy);
-                    }
-                }
-            },
-            {
-                minPhase: 1, maxPhase: 3,
-                fn: (t, phase) => {
-                    setSoulMode(true);
-                    let freq = Math.floor(Math.max(20, 45 - phase * 8));
-                    let speed = 7 + phase;
-                    if (t % freq === 0) {
-                        let h = Math.random() > 0.5 ? 60 : 40;
-                        spawnProjectile('bone', 310, 200 - h, 15, h, -speed, 0);
-                    }
-                    if (t % (freq * 2) === freq) spawnBlaster('h', 70);
-                }
+        'KNIGHT': [{ minPhase: 1, maxPhase: 3, fn: (t, p) => {
+            if (t % 15 === 0) {
+                let side = Math.random() > 0.5 ? -30 : 310;
+                spawnProjectile('bone', side, soulPos.y, 30, 12, side < 0 ? 10 : -10, 0);
             }
-        ]
+        }}]
     };
 
     function spawnProjectile(type, x, y, w, h, vx, vy) {
-        if (gameOver || gameWon) return;
         const el = document.createElement('div');
         el.className = type;
         el.style.width = w + 'px'; el.style.height = h + 'px';
@@ -573,414 +424,145 @@
     }
 
     function spawnBlaster(orient, pos) {
-        if (gameOver || gameWon) return;
         const warn = document.createElement('div');
         warn.className = 'blaster-warn';
-        const thickness = 25;
-        if (orient === 'h') { 
-            warn.style.width = '300px'; warn.style.height = thickness + 'px'; 
-            warn.style.left = '0'; warn.style.top = (pos - thickness/2) + 'px'; 
-        } else { 
-            warn.style.width = thickness + 'px'; warn.style.height = '200px'; 
-            warn.style.left = (pos - thickness/2) + 'px'; warn.style.top = '0'; 
-        }
+        if (orient === 'h') { warn.style.width = '300px'; warn.style.height = '20px'; warn.style.top = pos + 'px'; }
+        else { warn.style.width = '20px'; warn.style.height = '200px'; warn.style.left = pos + 'px'; }
         battleArea.appendChild(warn);
-
         setTimeout(() => {
-            if (gameOver || gameWon) { warn.remove(); return; }
+            if (state === 'MAIN_MENU') { warn.remove(); return; }
             warn.remove();
             const beam = document.createElement('div');
             beam.className = 'blaster-beam ' + (orient === 'h' ? 'beam-anim-h' : 'beam-anim-v');
-            const beamThickness = 45;
-            if (orient === 'h') { 
-                beam.style.width = '300px'; beam.style.height = beamThickness + 'px'; 
-                beam.style.left = '0'; beam.style.top = (pos - beamThickness/2) + 'px'; 
-            } else { 
-                beam.style.width = beamThickness + 'px'; beam.style.height = '200px'; 
-                beam.style.left = (pos - beamThickness/2) + 'px'; beam.style.top = '0'; 
-            }
+            beam.style.width = warn.style.width; beam.style.height = warn.style.height;
+            beam.style.top = warn.style.top; beam.style.left = warn.style.left;
             battleArea.appendChild(beam);
-            const p = { el: beam, x: parseInt(beam.style.left), y: parseInt(beam.style.top), vx: 0, vy: 0, w: parseInt(beam.style.width), h: parseInt(beam.style.height), type: 'beam', startTime: Date.now() };
+            const p = { el: beam, x: parseInt(beam.style.left || 0), y: parseInt(beam.style.top || 0), w: parseInt(beam.style.width), h: parseInt(beam.style.height), type: 'beam' };
             projectiles.push(p);
-            setTimeout(() => { 
-                beam.remove(); projectiles = projectiles.filter(item => item !== p); 
-            }, 450);
-        }, 650);
+            setTimeout(() => { beam.remove(); projectiles = projectiles.filter(i => i !== p); }, 400);
+        }, 600);
     }
 
     function handleMenu(type) {
-        if (state !== 'MENU' || gameOver || gameWon) return;
+        if (state !== 'MENU') return;
         playSoundEffect('select');
-        if (type === 'FIGHT') {
-            startAttackMiniGame();
-        } else if (type === 'ACT') {
-            diagText.style.display = 'none';
-            renderActMenu();
-            actMenu.style.display = 'grid';
-            state = 'SUBMENU';
-        } else if (type === 'ITEM') {
-            diagText.style.display = 'none';
-            renderInventory();
-            itemMenu.style.display = 'grid';
-            state = 'SUBMENU';
-        } else if (type === 'MERCY') {
-            state = 'WAITING';
-            diagText.innerHTML = "* You spared the enemy...<br>* But it refused to leave.";
-            setTimeout(() => {
-                diagText.innerHTML = "* The enemy waits for your next move.";
-                state = 'MENU';
-            }, 1500);
-        }
+        if (type === 'FIGHT') startAttackMiniGame();
+        else if (type === 'ITEM') { renderInventory(); itemMenu.style.display = 'grid'; state = 'SUBMENU'; diagText.style.display='none'; }
     }
 
     function startAttackMiniGame() {
         state = 'ATTACKING';
         diagText.style.display = 'none';
-        itemMenu.style.display = 'none';
-        actMenu.style.display = 'none';
         attackGame.style.display = 'flex';
-        controls.style.display = 'none';
-        
-        let cursorX = 0;
-        let speed = 6;
-        let direction = 1;
-        
-        const animateAttack = () => {
+        let cursorX = 0; let speed = 7; let dir = 1;
+        const anim = () => {
             if (state !== 'ATTACKING') return;
-            cursorX += speed * direction;
-            if (cursorX > 96 || cursorX < 0) direction *= -1;
+            cursorX += speed * dir;
+            if (cursorX > 98 || cursorX < 0) dir *= -1;
             attackCursor.style.left = cursorX + '%';
-            requestAnimationFrame(animateAttack);
+            requestAnimationFrame(anim);
         };
-        animateAttack();
-        
-        attackGame.onclick = (e) => {
-            e.stopPropagation();
-            if (state !== 'ATTACKING') return;
-            playSoundEffect('attack');
-            state = 'WAITING';
-            attackGame.style.display = 'none';
-            attackGame.onclick = null;
-            const accuracy = 1 - (Math.abs(cursorX - 50) / 50); 
-            if (itemUsedThisRound) {
-                diagText.style.display = 'block';
-                diagText.innerHTML = "* You swing your weapon...<br>* But the enemy anticipated it and dodged!";
-                enemySprite.style.transform = 'translateX(-40px)';
-                setTimeout(() => { enemySprite.style.transform = 'translateX(0)'; }, 300);
-                itemUsedThisRound = false; 
-                setTimeout(startDodge, 1500);
-                return;
+        anim();
+        attackGame.onclick = () => {
+            state = 'WAITING'; attackGame.style.display = 'none';
+            const acc = 1 - (Math.abs(cursorX - 50) / 50);
+            const dmg = Math.floor(50 * acc) + 10;
+            enemyHp -= dmg;
+            enemyHpFill.style.width = (enemyHp/maxEnemyHp)*100 + '%';
+            
+            if (currentCharacter === 'SKELETON' && enemyHp < 100) {
+                currentPhase = 4;
+                battleArea.classList.add('shrunk');
+                document.getElementById('game-screen').classList.add('phase-4');
+            } else if (enemyHp < 200) {
+                currentPhase = 2;
+                document.getElementById('game-screen').classList.add('phase-2');
             }
-            const damage = Math.floor(40 * accuracy) + 15; 
-            enemyHp -= damage;
-            let phaseChanged = false;
-            let fakeDeath = false;
-            if (currentCharacter === 'SKELETON') {
-                if (enemyHp <= 0 && currentPhase < 4) {
-                    enemyHp = 150; currentPhase = 4; turnCount = 0; fakeDeath = true;
-                    document.getElementById('game-screen').className = 'SKELETON phase-4';
-                } else if (enemyHp <= 200 && enemyHp > 100 && currentPhase === 1) {
-                    currentPhase = 2; turnCount = 0; phaseChanged = true;
-                    document.getElementById('game-screen').className = 'SKELETON phase-2';
-                } else if (enemyHp <= 100 && enemyHp > 0 && currentPhase === 2) {
-                    currentPhase = 3; turnCount = 0; phaseChanged = true;
-                    document.getElementById('game-screen').className = 'SKELETON phase-3';
-                }
-            } else if (currentCharacter === 'DUMMY') {
-                if (enemyHp <= 120 && enemyHp > 60 && currentPhase === 1) {
-                    currentPhase = 2; turnCount = 0; phaseChanged = true;
-                } else if (enemyHp <= 60 && enemyHp > 0 && currentPhase === 2) {
-                    currentPhase = 3; turnCount = 0; phaseChanged = true;
-                }
-            } else if (currentCharacter === 'KNIGHT') {
-                if (enemyHp <= 300 && enemyHp > 150 && currentPhase === 1) {
-                    currentPhase = 2; turnCount = 0; phaseChanged = true;
-                    document.getElementById('game-screen').className = 'KNIGHT phase-2';
-                } else if (enemyHp <= 150 && enemyHp > 0 && currentPhase === 2) {
-                    currentPhase = 3; turnCount = 0; phaseChanged = true;
-                    document.getElementById('game-screen').className = 'KNIGHT phase-3';
-                }
-            }
-            enemyHpFill.style.width = Math.max(0, (enemyHp/maxEnemyHp)*100) + '%';
-            document.getElementById('flash').style.opacity = 1;
-            setTimeout(() => document.getElementById('flash').style.opacity = 0, 50);
-            if (enemyHp <= 0 && (currentPhase === 4 || currentCharacter !== 'SKELETON')) {
-                triggerVictory();
-            } else {
-                diagText.style.display = 'block';
-                if (fakeDeath) {
-                    diagText.innerHTML = `* You dealt ${damage} damage!<br><span style="color:var(--ui-red)">* ... But it refused to yield.</span>`;
-                } else if (phaseChanged) {
-                    diagText.innerHTML = `* You dealt ${damage} damage!<br>* The enemy changes tactics!`;
-                } else {
-                    diagText.innerHTML = `* You dealt ${damage} damage!`;
-                }
-                setTimeout(startDodge, 1500); 
-            }
+
+            if (enemyHp <= 0) triggerVictory();
+            else { diagText.style.display = 'block'; diagText.innerHTML = `* Dealt ${dmg} damage!`; setTimeout(startDodge, 1000); }
         };
     }
 
     function renderInventory() {
         itemMenu.innerHTML = '';
-        if(inventory.length === 0) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.style.color = 'white'; emptyDiv.style.padding = '8px';
-            emptyDiv.innerText = '(Empty)'; itemMenu.appendChild(emptyDiv);
-        } else {
-            inventory.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'item-option'; div.innerText = item.name;
-                div.onclick = () => useItem(index); itemMenu.appendChild(div);
-            });
-        }
-        const backBtn = document.createElement('div');
-        backBtn.className = 'item-option'; backBtn.style.color = '#aaa';
-        backBtn.innerText = 'Back'; backBtn.onclick = cancelSubMenu;
-        itemMenu.appendChild(backBtn);
-    }
-
-    function useItem(index) {
-        if (state !== 'SUBMENU') return;
-        state = 'WAITING';
-        playSoundEffect('heal');
-        const itemName = inventory[index].name;
-        hp = maxHp; 
-        updateHPDisplay();
-        inventory.splice(index, 1);
-        itemMenu.style.display = 'none';
-        diagText.style.display = 'block';
-        forceRepeat = true;
-        itemUsedThisRound = true;
-        diagText.innerHTML = `* You used the ${itemName}. HP fully restored!`;
-        setTimeout(() => { startAttackMiniGame(); }, 1500);
-    }
-
-    function renderActMenu() {
-        actMenu.innerHTML = '';
-        const acts = ['Check', 'Talk', 'Joke', 'Cheer'];
-        acts.forEach((act) => {
-            const div = document.createElement('div');
-            div.className = 'item-option'; div.innerText = act;
-            div.onclick = () => performAct(act); actMenu.appendChild(div);
+        inventory.forEach((item, i) => {
+            const d = document.createElement('div'); d.className = 'item-option'; d.innerText = item.name;
+            d.onclick = () => { hp = maxHp; inventory.splice(i, 1); updateHPDisplay(); itemMenu.style.display = 'none'; startAttackMiniGame(); };
+            itemMenu.appendChild(d);
         });
-        const backBtn = document.createElement('div');
-        backBtn.className = 'item-option'; backBtn.style.color = '#aaa';
-        backBtn.innerText = 'Back'; backBtn.onclick = cancelSubMenu;
-        actMenu.appendChild(backBtn);
-    }
-    
-    function cancelSubMenu() {
-        if (state !== 'SUBMENU') return;
-        playSoundEffect('select');
-        itemMenu.style.display = 'none'; actMenu.style.display = 'none';
-        diagText.style.display = 'block'; state = 'MENU';
-    }
-
-    function performAct(actName) {
-        if (state !== 'SUBMENU') return;
-        state = 'WAITING';
-        playSoundEffect('select');
-        actMenu.style.display = 'none'; diagText.style.display = 'block';
-        if (actName === 'Check') {
-            if (currentCharacter === 'DUMMY') diagText.innerHTML = `* DUMMY - ATK 1 DEF 1<br>* A cotton heart and a button eye.`;
-            else if (currentCharacter === 'SKELETON') diagText.innerHTML = `* SKELETON - ATK 1 DEF 1<br>* The easiest enemy. Can only deal 1 damage.`;
-            else diagText.innerHTML = `* KNIGHT - ATK 99 DEF 50<br>* The heroine appears.`;
-        } else {
-            diagText.innerHTML = `* You tried to ${actName}... but nothing happened.`;
-        }
-        setTimeout(() => { diagText.innerHTML = "* The enemy waits for your next move."; state = 'MENU'; }, 2000); 
     }
 
     function startDodge() {
-        if (gameOver || gameWon) return;
-        state = 'DODGING';
+        state = 'DODGING'; soul.style.display = 'block'; controls.style.display = 'flex';
         diagText.style.display = 'none';
-        soul.style.display = 'block';
-        controls.style.display = 'flex';
-        soulPos = { x: 142, y: isBlueSoul ? 179 : 100 };
-        velocity = { x: 0, y: 0 };
+        soulPos = { x: 140, y: 140 };
         let t = 0;
-        let nextPattern;
-        if (forceRepeat && lastPattern) {
-            nextPattern = lastPattern; forceRepeat = false; 
-        } else {
-            let allowedPatterns = allPatterns[currentCharacter].filter(p => currentPhase >= p.minPhase && currentPhase <= p.maxPhase);
-            nextPattern = allowedPatterns[Math.floor(Math.random() * allowedPatterns.length)];
-        }
-        lastPattern = nextPattern;
-        const currentPatternFn = nextPattern.fn;
-        turnCount++;
-
+        let p = allPatterns[currentCharacter][Math.floor(Math.random() * allPatterns[currentCharacter].length)];
         const loop = () => {
-            if (state !== 'DODGING' && state !== 'GAMEOVER') return;
-            
+            if (state !== 'DODGING') return;
             t++;
-            
-            if (state === 'DODGING') {
-                if (isBlueSoul) {
-                    velocity.y += 0.45;
-                    if (isJumping && velocity.y < 0) velocity.y -= 0.18;
-                    soulPos.x += inputDir.x * 4.2;
-                    soulPos.y += velocity.y;
-                    if (soulPos.y > 179) { soulPos.y = 179; velocity.y = 0; }
-                } else {
-                    soulPos.x += inputDir.x * 5;
-                    soulPos.y += inputDir.y * 5;
-                }
-                soulPos.x = Math.max(2, Math.min(282, soulPos.x));
-                soulPos.y = Math.max(2, Math.min(182, soulPos.y));
-                soul.style.left = soulPos.x + 'px';
-                soul.style.top = soulPos.y + 'px';
-            }
-
-            currentPatternFn(t, currentPhase); 
-            checkCollisions();
-
-            if (invul > 0) { 
-                invul--; 
-                soul.style.opacity = t % 4 < 2 ? 0.3 : 1; 
-            } else soul.style.opacity = 1;
-
-            if (t < 400) {
-                requestAnimationFrame(loop);
+            if (isBlueSoul) {
+                velocity.y += 0.5; soulPos.y += velocity.y; soulPos.x += inputDir.x * 5;
+                if (soulPos.y > (battleArea.classList.contains('shrunk') ? 160 : 180)) { soulPos.y = (battleArea.classList.contains('shrunk') ? 160 : 180); velocity.y = 0; }
             } else {
-                if (state !== 'GAMEOVER') endTurn();
+                soulPos.x += inputDir.x * 5; soulPos.y += inputDir.y * 5;
             }
+            const limit = battleArea.classList.contains('shrunk') ? 164 : 284;
+            const hLimit = battleArea.classList.contains('shrunk') ? 164 : 184;
+            soulPos.x = Math.max(0, Math.min(limit, soulPos.x));
+            soulPos.y = Math.max(0, Math.min(hLimit, soulPos.y));
+            soul.style.left = soulPos.x + 'px'; soul.style.top = soulPos.y + 'px';
+            
+            p.fn(t, currentPhase);
+            checkCollisions();
+            if (t < 350) requestAnimationFrame(loop); else endTurn();
         };
         loop();
     }
 
     function checkCollisions() {
-        if (state === 'MENU' || state === 'VICTORY' || invul > 0) {
-            updateProjectilePositions(); 
-            return;
-        }
-        
-        const sx = soulPos.x + 8;
-        const sy = soulPos.y + 8; 
-        const isMoving = Math.abs(inputDir.x) > 0.1 || Math.abs(inputDir.y) > 0.1 || Math.abs(velocity.y) > 0.2;
-
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            const p = projectiles[i];
-            if (!p.type.includes('beam')) {
-                p.x += p.vx; p.y += p.vy;
-                p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px'; 
+        const sx = soulPos.x + 8; const sy = soulPos.y + 8;
+        projectiles.forEach(p => {
+            if (p.type !== 'beam') { p.x += p.vx; p.y += p.vy; p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px'; }
+            if (invul <= 0 && sx > p.x && sx < p.x + p.w && sy > p.y && sy < p.y + p.h) {
+                hp -= 5; invul = 30; playSoundEffect('hurt'); updateHPDisplay();
+                if (hp <= 0) triggerGameOver();
             }
-
-            const padding = 3; 
-            const hit = (sx > p.x + padding && sx < p.x + p.w - padding && sy > p.y + padding && sy < p.y + p.h - padding);
-
-            if (hit && state === 'DODGING') {
-                let takesDmg = true;
-                if (p.type.includes('blue') && !isMoving) takesDmg = false;
-                if (p.type.includes('orange') && isMoving) takesDmg = false;
-
-                if (takesDmg) {
-                    playSoundEffect('hurt');
-                    const baseDamage = p.type.includes('beam') ? 5 : 3;
-                    hp = Math.max(0, hp - Math.ceil(baseDamage * dmgMult));
-                    invul = 25; 
-                    updateHPDisplay();
-                    
-                    if (hp <= 0) { 
-                        triggerGameOver(); 
-                    }
-                }
-            }
-
-            if (!p.type.includes('beam') && (p.x < -100 || p.x > 400)) { p.el.remove(); projectiles.splice(i, 1); }
-        }
+        });
+        if (invul > 0) { invul--; soul.style.opacity = invul % 4 < 2 ? 0.2 : 1; } else soul.style.opacity = 1;
     }
 
-    function updateProjectilePositions() {
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            const p = projectiles[i];
-            if (!p.type.includes('beam')) {
-                p.x += p.vx; p.y += p.vy;
-                p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px'; 
-            }
-            if (!p.type.includes('beam') && (p.x < -100 || p.x > 400)) { p.el.remove(); projectiles.splice(i, 1); }
-        }
+    function endTurn() {
+        state = 'MENU'; soul.style.display = 'none'; controls.style.display = 'none';
+        diagText.style.display = 'block'; diagText.innerHTML = "* The enemy is breathing heavily.";
+        projectiles.forEach(p => p.el.remove()); projectiles = [];
     }
 
-    function triggerGameOver() {
-        gameOver = true;
-        state = 'GAMEOVER';
-        gameOverOverlay.style.display = 'flex';
-        controls.style.display = 'none';
-    }
-
-    function triggerVictory() {
-        gameWon = true; state = 'VICTORY';
-        enemySprite.style.opacity = '0';
-        setTimeout(() => {
-            victoryOverlay.style.display = 'flex';
-            controls.style.display = 'none';
-            soul.style.display = 'none';
-        }, 1200);
-    }
-
-    function resetGame() {
-        if (musicTimer) clearTimeout(musicTimer);
-        turnCount = 0; lastPattern = null; forceRepeat = false; itemUsedThisRound = false;
-        gameOver = false; gameWon = false; invul = 0; state = 'MAIN_MENU'; currentPhase = 1;
-        document.getElementById('game-screen').className = '';
-        mainMenuOverlay.style.display = 'flex'; backToMenuBtn.style.display = 'none'; muteBtn.style.display = 'none';
-        initInventory(); updateHPDisplay(); enemyHpFill.style.width = '100%'; enemySprite.style.opacity = '1';
-        gameOverOverlay.style.display = 'none'; victoryOverlay.style.display = 'none';
-        itemMenu.style.display = 'none'; actMenu.style.display = 'none'; attackGame.style.display = 'none';
-        diagText.style.display = 'block'; diagText.innerHTML = "* The battle begins anew.";
-        controls.style.display = 'none'; soul.style.display = 'none'; soul.style.opacity = '1';
-        setSoulMode(false); projectiles.forEach(p => p.el.remove()); projectiles = [];
-        document.querySelectorAll('.bone, .blaster-warn, .blaster-beam').forEach(el => el.remove());
-    }
-
-    function setSoulMode(blue) {
-        isBlueSoul = blue;
-        if (blue) { soul.classList.add('blue-mode'); jumpBtn.style.visibility = 'visible'; }
-        else { soul.classList.remove('blue-mode'); jumpBtn.style.visibility = 'hidden'; }
-    }
+    function triggerGameOver() { state = 'GAMEOVER'; gameOverOverlay.style.display = 'flex'; }
+    function triggerVictory() { gameWon = true; victoryOverlay.style.display = 'flex'; }
 
     function updateHPDisplay() {
         document.getElementById('hp-bar-fill').style.width = (hp/maxHp)*100 + '%';
         document.getElementById('hp-text').innerText = hp + "/" + maxHp;
     }
 
-    function endTurn() {
-        if (gameOver || gameWon) return;
-        state = 'MENU';
-        soul.style.display = 'none';
-        controls.style.display = 'none';
-        diagText.style.display = 'block';
-        diagText.innerHTML = "* The enemy waits for your next move.";
-        projectiles.forEach(p => p.el.remove());
-        projectiles = [];
-    }
-
     const handleInput = (e) => {
-        if (gameOver || gameWon) return;
-        e.preventDefault();
-        const touch = e.touches[0];
-        const r = joystick.getBoundingClientRect();
-        const dx = touch.clientX - (r.left + r.width/2);
-        const dy = touch.clientY - (r.top + r.height/2);
-        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
-        const angle = Math.atan2(dy, dx);
-        inputDir = { x: Math.cos(angle) * (dist/40), y: Math.sin(angle) * (dist/40) };
-        knob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+        if (state !== 'DODGING') return;
+        const t = e.touches[0]; const r = joystick.getBoundingClientRect();
+        const dx = t.clientX - (r.left + r.width/2); const dy = t.clientY - (r.top + r.height/2);
+        const d = Math.min(Math.sqrt(dx*dx+dy*dy), 40); const a = Math.atan2(dy, dx);
+        inputDir = { x: Math.cos(a) * (d/40), y: Math.sin(a) * (d/40) };
+        knob.style.transform = `translate(${Math.cos(a)*d}px, ${Math.sin(a)*d}px)`;
     };
-    joystick.addEventListener('touchstart', handleInput);
-    joystick.addEventListener('touchmove', handleInput);
-    joystick.addEventListener('touchend', () => { inputDir = {x:0, y:0}; knob.style.transform = 'none'; });
-    
-    jumpBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        isJumping = true;
-        if (isBlueSoul && Math.abs(velocity.y) < 0.1) {
-            velocity.y = -7.2; playSoundEffect('jump');
-        }
-    });
-    jumpBtn.addEventListener('touchend', () => isJumping = false);
+    joystick.ontouchstart = joystick.ontouchmove = handleInput;
+    joystick.ontouchend = () => { inputDir = {x:0,y:0}; knob.style.transform = 'none'; };
+    jumpBtn.ontouchstart = () => { if (isBlueSoul && velocity.y === 0) velocity.y = -8; };
+
+    function setSoulMode(b) { isBlueSoul = b; soul.className = b ? 'blue-mode' : ''; jumpBtn.style.visibility = b ? 'visible' : 'hidden'; }
+
+    document.getElementById('btn-gameover').onclick = goBackToMenu;
+    document.getElementById('btn-victory').onclick = goBackToMenu;
 </script>
 </body>
 </html>
