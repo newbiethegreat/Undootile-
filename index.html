@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Undertale Battle Engine</title>
+    <style>
+        :root { 
+            --ui-white: #fff; --ui-yellow: #ff0; --ui-red: #f00; 
+            --ui-blue: #2eb5ff; --ui-purple: #d535ff; --ui-orange: #ffa500; 
+            --ui-green: #00ff00;
+        }
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Courier New', monospace; color: white; user-select: none; touch-action: none; }
+        #game-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        
+        #enemy-sprite { width: 120px; height: 120px; margin-bottom: 20px; position: relative; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        #enemy-hp-bar { width: 160px; height: 12px; background: #333; border: 2px solid white; margin-bottom: 30px; position: relative; }
+        #enemy-hp-fill { width: 100%; height: 100%; background: var(--ui-green); transition: width 0.4s; }
+
+        #battle-box { 
+            position: relative; width: 320px; height: 200px; border: 5px solid white; background: black; overflow: hidden; 
+            display: flex; flex-direction: column; box-sizing: border-box;
+        }
+        #dialogue { padding: 15px; font-size: 18px; line-height: 1.4; color: white; flex-grow: 1; }
+        
+        #soul { 
+            position: absolute; width: 16px; height: 16px; background: var(--ui-red); 
+            clip-path: path('M8 2.1c1.1-1.1 2.9-1.1 4 0 1.1 1.1 1.1 2.9 0 4L8 10.2 4 6.1c-1.1-1.1-1.1-2.9 0-4 1.1-1.1 2.9-1.1 4 0z');
+            z-index: 100; display: none; transform-origin: center;
+        }
+
+        .projectile { position: absolute; background: white; z-index: 50; }
+        .blaster-beam { position: absolute; background: white; z-index: 60; box-shadow: 0 0 15px white; opacity: 0; pointer-events: none; }
+        @keyframes fire { 0% { transform: scaleY(0.1); opacity: 1; } 20% { transform: scaleY(1.2); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+        #stats-ui { width: 330px; display: flex; align-items: center; font-weight: bold; margin: 10px 0; font-size: 14px; }
+        #player-hp-bg { width: 100px; height: 20px; background: var(--ui-red); margin: 0 10px; }
+        #player-hp-fill { width: 100%; height: 100%; background: var(--ui-yellow); }
+
+        #menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 330px; margin-top: 10px; }
+        .menu-btn { 
+            border: 2px solid var(--ui-orange); color: var(--ui-orange); padding: 10px; text-align: center; 
+            font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 20px;
+        }
+        .menu-btn:active { background: #422; color: white; border-color: white; }
+
+        #overlay { 
+            position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; 
+            flex-direction: column; align-items: center; justify-content: center; z-index: 1000; 
+        }
+        .btn-restart { margin-top: 20px; padding: 10px 20px; border: 2px solid white; background: black; color: white; cursor: pointer; font-family: inherit; }
+
+        #touch-controls { 
+            position: fixed; bottom: 20px; left: 0; width: 100%; display: none; 
+            justify-content: space-around; pointer-events: none; z-index: 2000;
+        }
+        .joystick-base { 
+            width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; 
+            position: relative; pointer-events: auto; border: 2px solid rgba(255,255,255,0.2);
+        }
+        #joystick-knob { 
+            width: 40px; height: 40px; background: rgba(255,255,255,0.5); border-radius: 50%; 
+            position: absolute; top: 40px; left: 40px; 
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="enemy-sprite">
+        <svg viewBox="0 0 100 100" width="100" height="100">
+            <circle cx="50" cy="30" r="25" fill="white"/>
+            <circle cx="40" cy="25" r="5" fill="black"/>
+            <circle id="enemy-eye" cx="60" cy="25" r="5" fill="black"/>
+            <path d="M35 45 Q50 52 65 45" fill="none" stroke="black" stroke-width="2"/>
+            <rect x="30" y="55" width="40" height="40" fill="white" rx="5"/>
+        </svg>
+    </div>
+    
+    <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
+
+    <div id="battle-box">
+        <div id="dialogue">* The air is filled with determination.</div>
+        <div id="soul"></div>
+    </div>
+
+    <div id="stats-ui">
+        <span>PLAYER LV 19</span>
+        <div id="player-hp-bg"><div id="player-hp-fill"></div></div>
+        <span id="hp-text">92 / 92</span>
+    </div>
+
+    <div id="menu-grid">
+        <div class="menu-btn" onclick="handleMenu('FIGHT')">FIGHT</div>
+        <div class="menu-btn" onclick="handleMenu('ACT')">ACT</div>
+        <div class="menu-btn" onclick="handleMenu('ITEM')">ITEM</div>
+        <div class="menu-btn" onclick="handleMenu('MERCY')">MERCY</div>
+    </div>
+
+    <div id="overlay">
+        <h1 id="overlay-title" style="font-size: 48px;">GAME OVER</h1>
+        <button class="btn-restart" onclick="location.reload()">TRY AGAIN</button>
+    </div>
+
+    <div id="touch-controls">
+        <div class="joystick-base" id="joy-base">
+            <div id="joystick-knob"></div>
+        </div>
+        <div style="width: 100px;"></div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        hp: 92, maxHp: 92, enemyHp: 500, maxEnemyHp: 500,
+        mode: 'MENU', phase: 1,
+        soulPos: { x: 152, y: 140 },
+        input: { x: 0, y: 0 },
+        projectiles: [],
+        invul: 0,
+        turnTimer: 0
+    };
+
+    const elements = {
+        soul: document.getElementById('soul'),
+        box: document.getElementById('battle-box'),
+        diag: document.getElementById('dialogue'),
+        hpFill: document.getElementById('player-hp-fill'),
+        hpText: document.getElementById('hp-text'),
+        enemyHpFill: document.getElementById('enemy-hp-fill'),
+        overlay: document.getElementById('overlay'),
+        controls: document.getElementById('touch-controls'),
+        knob: document.getElementById('joystick-knob'),
+        eye: document.getElementById('enemy-eye')
+    };
+
+    function handleMenu(type) {
+        if (state.mode !== 'MENU') return;
+        
+        if (type === 'FIGHT') {
+            state.enemyHp -= 100;
+            elements.enemyHpFill.style.width = (state.enemyHp / state.maxEnemyHp) * 100 + '%';
+            if (state.enemyHp <= 250) {
+                state.phase = 2;
+                elements.eye.setAttribute('fill', '#2eb5ff');
+            }
+            startEnemyTurn();
+        }
+    }
+
+    function startEnemyTurn() {
+        state.mode = 'BATTLE';
+        elements.diag.style.display = 'none';
+        elements.soul.style.display = 'block';
+        elements.controls.style.display = 'flex';
+        state.turnTimer = 400;
+        gameLoop();
+    }
+
+    function spawnBone() {
+        const h = Math.random() * 60 + 20;
+        const bone = document.createElement('div');
+        bone.className = 'projectile';
+        bone.style.width = '12px';
+        bone.style.height = h + 'px';
+        bone.style.left = '320px';
+        bone.style.top = (200 - h) + 'px';
+        elements.box.appendChild(bone);
+        state.projectiles.push({ el: bone, x: 320, y: 200 - h, w: 12, h: h, vx: -4 });
+    }
+
+    function spawnBlaster() {
+        const y = state.soulPos.y;
+        const beam = document.createElement('div');
+        beam.className = 'blaster-beam';
+        beam.style.width = '320px';
+        beam.style.height = '40px';
+        beam.style.left = '0';
+        beam.style.top = (y - 12) + 'px';
+        beam.style.animation = 'fire 0.5s forwards';
+        elements.box.appendChild(beam);
+        
+        setTimeout(() => {
+            if (state.invul <= 0 && Math.abs(state.soulPos.y - (y + 8)) < 25) {
+                takeDamage(15);
+            }
+            setTimeout(() => beam.remove(), 500);
+        }, 300);
+    }
+
+    function takeDamage(amt) {
+        state.hp = Math.max(0, state.hp - amt);
+        state.invul = 40;
+        elements.hpFill.style.width = (state.hp / state.maxHp) * 100 + '%';
+        elements.hpText.innerText = `${state.hp} / ${state.maxHp}`;
+        
+        if (state.hp <= 0) {
+            state.mode = 'GAMEOVER';
+            elements.overlay.style.display = 'flex';
+        }
+    }
+
+    function gameLoop() {
+        if (state.mode !== 'BATTLE') return;
+
+        state.turnTimer--;
+        
+        // Soul Movement
+        state.soulPos.x += state.input.x * 4;
+        state.soulPos.y += state.input.y * 4;
+        state.soulPos.x = Math.max(5, Math.min(299, state.soulPos.x));
+        state.soulPos.y = Math.max(5, Math.min(179, state.soulPos.y));
+        
+        elements.soul.style.left = state.soulPos.x + 'px';
+        elements.soul.style.top = state.soulPos.y + 'px';
+
+        // Attack Patterns
+        if (state.turnTimer % 25 === 0) spawnBone();
+        if (state.phase === 2 && state.turnTimer % 80 === 0) spawnBlaster();
+
+        // Projectile Update
+        for (let i = state.projectiles.length - 1; i >= 0; i--) {
+            const p = state.projectiles[i];
+            p.x += p.vx;
+            p.el.style.left = p.x + 'px';
+
+            // Collision
+            if (state.invul <= 0) {
+                if (state.soulPos.x < p.x + p.w && state.soulPos.x + 16 > p.x &&
+                    state.soulPos.y < p.y + p.h && state.soulPos.y + 16 > p.y) {
+                    takeDamage(10);
+                }
+            }
+
+            if (p.x < -20) {
+                p.el.remove();
+                state.projectiles.splice(i, 1);
+            }
+        }
+
+        if (state.invul > 0) {
+            state.invul--;
+            elements.soul.style.opacity = state.invul % 4 < 2 ? 0.3 : 1;
+        } else {
+            elements.soul.style.opacity = 1;
+        }
+
+        if (state.turnTimer > 0) {
+            requestAnimationFrame(gameLoop);
+        } else {
+            endTurn();
+        }
+    }
+
+    function endTurn() {
+        state.mode = 'MENU';
+        elements.soul.style.display = 'none';
+        elements.controls.style.display = 'none';
+        elements.diag.style.display = 'block';
+        state.projectiles.forEach(p => p.el.remove());
+        state.projectiles = [];
+        
+        if (state.enemyHp <= 0) {
+            document.getElementById('overlay-title').innerText = "VICTORY";
+            document.getElementById('overlay-title').style.color = "var(--ui-yellow)";
+            elements.overlay.style.display = 'flex';
+        }
+    }
+
+    // Input Handling
+    const joyBase = document.getElementById('joy-base');
+    const handleTouch = (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = joyBase.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+        const angle = Math.atan2(dy, dx);
+        
+        state.input.x = Math.cos(angle) * (dist / 40);
+        state.input.y = Math.sin(angle) * (dist / 40);
+        
+        elements.knob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+    };
+
+    joyBase.addEventListener('touchstart', handleTouch);
+    joyBase.addEventListener('touchmove', handleTouch);
+    joyBase.addEventListener('touchend', () => {
+        state.input = { x: 0, y: 0 };
+        elements.knob.style.transform = 'translate(0,0)';
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') state.input.y = -1;
+        if (e.key === 'ArrowDown') state.input.y = 1;
+        if (e.key === 'ArrowLeft') state.input.x = -1;
+        if (e.key === 'ArrowRight') state.input.x = 1;
+    });
+    window.addEventListener('keyup', (e) => {
+        if (['ArrowUp', 'ArrowDown'].includes(e.key)) state.input.y = 0;
+        if (['ArrowLeft', 'ArrowRight'].includes(e.key)) state.input.x = 0;
+    });
+</script>
+
+</body>
+</html>
