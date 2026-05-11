@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Undertale Hard Mode - Continuous Attacks</title>
+    <title>Undertale Hard Mode - Made by Newbie</title>
     <style>
         :root { 
             --ui-white: #fff; --ui-yellow: #ff0; --ui-red: #f00; 
@@ -74,8 +74,10 @@
         .restart-btn:hover { background: #333; }
         .restart-btn:active { background: white; color: black; }
 
-        #main-menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
-        .diff-btn { background: black; border: 2px solid; padding: 15px 30px; margin: 10px; font-size: 18px; font-family: inherit; cursor: pointer; text-transform: uppercase; width: 280px; font-weight: bold; transition: all 0.1s; }
+        #main-menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; overflow-y: auto; padding: 20px; }
+        
+        .char-grid { display: flex; flex-wrap: wrap; justify-content: center; max-width: 600px; gap: 10px; margin-bottom: 20px; }
+        .diff-btn { background: black; border: 2px solid; padding: 12px 20px; font-size: 16px; font-family: inherit; cursor: pointer; text-transform: uppercase; width: 260px; font-weight: bold; transition: all 0.1s; }
         .diff-btn.easy { border-color: var(--ui-green); color: var(--ui-green); }
         .diff-btn.easy:active { background: var(--ui-green); color: black; }
         .diff-btn.normal { border-color: var(--ui-yellow); color: var(--ui-yellow); }
@@ -121,9 +123,14 @@
 
 <div id="main-menu-overlay">
     <div style="color: white; font-size: 32px; font-weight: bold; margin-bottom: 20px; text-align: center; letter-spacing: 2px;">CHOOSE YOUR<br>OPPONENT</div>
-    <button class="diff-btn easy" onclick="startGame('DUMMY')">THE DUMMY (EASY)</button>
-    <button class="diff-btn normal" onclick="startGame('SKELETON')">THE SKELETON (NORMAL)</button>
-    <button class="diff-btn hard" onclick="startGame('KNIGHT')">THE KNIGHT (HARD)</button>
+    <div class="char-grid">
+        <button class="diff-btn easy" onclick="startGame('DUMMY')">THE DUMMY (EASY)</button>
+        <button class="diff-btn easy" onclick="startGame('SPIDER')">THE SPIDER (EASY)</button>
+        <button class="diff-btn normal" onclick="startGame('SKELETON')">THE SKELETON (NORMAL)</button>
+        <button class="diff-btn normal" onclick="startGame('ROBOT')">THE ROBOT (NORMAL)</button>
+        <button class="diff-btn hard" onclick="startGame('KNIGHT')">THE KNIGHT (HARD)</button>
+        <button class="diff-btn hard" onclick="startGame('FLOWER')">THE FLOWER (HARD)</button>
+    </div>
     <div id="credits-text">Made by Newbie</div>
 </div>
 
@@ -152,13 +159,13 @@
 
         <div id="game-over-overlay" class="full-overlay">
             <div style="color: var(--ui-red); font-size: 24px; font-weight: bold;">GAME OVER</div>
-            <button class="restart-btn" id="btn-gameover">MAIN MENU</button>
+            <button class="restart-btn" onclick="resetGame()">MAIN MENU</button>
         </div>
 
         <div id="victory-overlay" class="full-overlay">
             <div style="color: var(--ui-yellow); font-size: 24px; font-weight: bold;">VICTORY</div>
             <div style="font-size: 14px; margin-top: 10px;">YOU WON!</div>
-            <button class="restart-btn" id="btn-victory">MAIN MENU</button>
+            <button class="restart-btn" onclick="resetGame()">MAIN MENU</button>
         </div>
 
         <div id="soul"></div>
@@ -240,6 +247,7 @@
     const muteBtn = document.getElementById('mute-btn');
     const skipBtn = document.getElementById('skip-btn');
 
+    // --- KEYBOARD CONTROLS ---
     window.addEventListener('keydown', e => {
         const k = e.key.toLowerCase();
         keys[k] = true;
@@ -295,7 +303,7 @@
     let musicTimer;
     
     const NOTES = {
-        'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
+        'C2': 65.41, 'D2': 73.42, 'E2': 82.41, 'F2': 87.31, 'F#2': 92.50, 'G2': 98.00, 'G#2': 103.83, 'A2': 110.00, 'A#2': 116.54, 'B2': 123.47,
         'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
         'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
         'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25, 'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00
@@ -304,44 +312,47 @@
     const MUSIC_THEMES = {
         'DUMMY': { 
             tempo: 125, type: 'square', bassType: 'triangle',
-            seq: [
-                'A3',null,'C4',null, 'D4',null,'D#4','E4', null,'C4',null,'A3', null,'G3',null,'A3',
-                'A3',null,'C4',null, 'D4',null,'D#4','E4', null,'G4',null,'E4', null,'D4',null,'C4',
-                'E4',null,'D#4',null, 'D4',null,'C4',null, 'A3',null,'G3',null, 'A3',null,null,null
-            ],
-            bass: [
-                'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
-                'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
-                'E3',null,'D#3',null, 'D3',null,'C3',null, 'A2',null,'E2',null, 'A2',null,null,null
-            ]
+            seq: ['A3',null,'C4',null, 'D4',null,'D#4','E4', null,'C4',null,'A3', null,'G3',null,'A3',
+                  'A3',null,'C4',null, 'D4',null,'D#4','E4', null,'G4',null,'E4', null,'D4',null,'C4',
+                  'E4',null,'D#4',null, 'D4',null,'C4',null, 'A3',null,'G3',null, 'A3',null,null,null],
+            bass: ['A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
+                   'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null, 'A2',null,'E3',null,
+                   'E3',null,'D#3',null, 'D3',null,'C3',null, 'A2',null,'E2',null, 'A2',null,null,null]
+        },
+        'SPIDER': { 
+            tempo: 100, type: 'triangle', bassType: 'square',
+            seq: ['E4','G4','B4','E5','E4','G4','B4','E5'],
+            bass: ['E3',null,'E3',null, 'E3',null,'E3',null]
         },
         'SKELETON': { 
             tempo: 110, type: 'square', bassType: 'square',
-            seq: [
-                'D4','D4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'C4','C4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'B3','B3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
-                'A#3','A#3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4'
-            ],
-            bass: [
-                'D3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'C3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'B2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
-                'A#2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null
-            ]
+            seq: ['D4','D4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
+                  'C4','C4','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
+                  'B3','B3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4',
+                  'A#3','A#3','D5',null,'A4',null,null,'G#4',null,'G4',null,'F4',null,'D4','F4','G4'],
+            bass: ['D3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
+                   'C3',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
+                   'B2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null,
+                   'A#2',null,null,null, null,null,null,null, null,null,null,null, null,null,null,null]
+        },
+        'ROBOT': { 
+            tempo: 110, type: 'square', bassType: 'square',
+            seq: ['C4','E4','G4','C5','G4','E4'],
+            bass: ['C3','C3','C3','C3','C3','C3']
         },
         'KNIGHT': { 
             tempo: 105, type: 'sawtooth', bassType: 'square',
-            seq: [
-                'A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','B4','G4', 'A4',null,null,null,
-                'A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','D5','E5', 'A5',null,null,null,
-                'F4',null,'C5',null,'B4',null,'A4',null, 'G4','A4','G4','E4', 'F4',null,null,null
-            ],
-            bass: [
-                'A2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null, 
-                'F2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null,
-                'F2',null,null,null, null,null,null,null, 'C3',null,null,null, 'E3',null,null,null
-            ]
+            seq: ['A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','B4','G4', 'A4',null,null,null,
+                  'A4',null,'E5',null,'D5',null,'C5',null, 'B4','C5','D5','E5', 'A5',null,null,null,
+                  'F4',null,'C5',null,'B4',null,'A4',null, 'G4','A4','G4','E4', 'F4',null,null,null],
+            bass: ['A2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null, 
+                   'F2',null,null,null, null,null,null,null, 'G2',null,null,null, null,null,null,null,
+                   'F2',null,null,null, null,null,null,null, 'C3',null,null,null, 'E3',null,null,null]
+        },
+        'FLOWER': { 
+            tempo: 90, type: 'sawtooth', bassType: 'sawtooth',
+            seq: ['A4','A#4','A4','F4','D4','F4'],
+            bass: ['D2',null,'D2',null,'D2',null]
         }
     };
 
@@ -377,7 +388,7 @@
         };
 
         const playNextNote = () => {
-            if (gameOver || gameWon) return;
+            if (gameOver || gameWon || state === 'MAIN_MENU') return;
             let speedMod = (currentPhase - 1) * 0.12; 
             if (currentPhase === 4) speedMod = 0.40;  
             let currentTempo = theme.tempo * (1 - speedMod);
@@ -406,48 +417,36 @@
         const now = audioCtx.currentTime;
 
         if (type === 'select') {
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'hurt') {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-            gainNode.gain.setValueAtTime(0.1, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+            gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
             osc.start(now); osc.stop(now + 0.2);
         } else if (type === 'attack') {
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(800, now);
-            osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-            gainNode.gain.setValueAtTime(0.08, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.type = 'square'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+            gainNode.gain.setValueAtTime(0.08, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
             osc.start(now); osc.stop(now + 0.15);
         } else if (type === 'heal') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+            gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
             osc.start(now); osc.stop(now + 0.3);
         } else if (type === 'jump') {
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(300, now);
-            osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
-            gainNode.gain.setValueAtTime(0.05, now);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+            gainNode.gain.setValueAtTime(0.05, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
             osc.start(now); osc.stop(now + 0.15);
         }
     }
 
-    const CHARACTER_SVGS = {
-        'DUMMY': `<svg viewBox="0 0 100 100" width="80" height="100"><ellipse cx="50" cy="50" rx="30" ry="40" fill="#d2b48c"/><line x1="50" y1="90" x2="50" y2="100" stroke="#8b4513" stroke-width="8"/><circle cx="35" cy="40" r="4" fill="#5c4033"/><circle cx="65" cy="40" r="4" fill="#5c4033"/><path d="M35 60 Q50 70 65 60" fill="none" stroke="#5c4033" stroke-width="3"/><path d="M30 30 L40 50 M70 30 L60 50" stroke="#5c4033" stroke-width="2"/></svg>`,
-        'SKELETON': `<svg viewBox="0 0 100 100" width="80" height="100"><circle cx="50" cy="30" r="25" fill="white"/><path d="M35 55 L65 55 L70 95 L30 95 Z" fill="white"/><circle cx="40" cy="25" r="5" fill="black"/><circle id="right-eye" cx="60" cy="25" r="5" fill="black"/><path d="M40 42 Q50 48 60 42" fill="none" stroke="black" stroke-width="2"/></svg>`,
-        'KNIGHT': `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M20 30 L80 30 L65 90 L35 90 Z" fill="#c0c0c0" stroke="#808080" stroke-width="3"/><path d="M35 15 L65 15 L75 30 L25 30 Z" fill="#a9a9a9"/><path d="M45 40 L55 40 L55 65 L45 65 Z" fill="#000"/><path d="M35 40 L65 40" stroke="#000" stroke-width="4"/><circle id="knight-eye" cx="50" cy="50" r="4" fill="var(--ui-cyan)" filter="drop-shadow(0 0 5px var(--ui-cyan))"/><path d="M50 15 Q40 -5 20 10" fill="none" stroke="#ff0000" stroke-width="8" stroke-linecap="round"/></svg>`
-    };
+    function getCharacterSVG(char) {
+        if (char === 'DUMMY') return `<svg viewBox="0 0 100 100" width="80" height="100"><ellipse cx="50" cy="50" rx="30" ry="40" fill="#d2b48c"/><line x1="50" y1="90" x2="50" y2="100" stroke="#8b4513" stroke-width="8"/><circle cx="35" cy="40" r="4" fill="#5c4033"/><circle cx="65" cy="40" r="4" fill="#5c4033"/><path d="M35 60 Q50 70 65 60" fill="none" stroke="#5c4033" stroke-width="3"/></svg>`;
+        if (char === 'SPIDER') return `<svg viewBox="0 0 100 100" width="80" height="100"><circle cx="50" cy="50" r="20" fill="purple"/><path d="M50 50 L20 20 M50 50 L80 20 M50 50 L20 50 M50 50 L80 50 M50 50 L20 80 M50 50 L80 80" stroke="purple" stroke-width="4"/><circle cx="40" cy="45" r="3" fill="white"/><circle cx="60" cy="45" r="3" fill="white"/></svg>`;
+        if (char === 'SKELETON') return `<svg viewBox="0 0 100 100" width="80" height="100"><circle cx="50" cy="30" r="25" fill="white"/><path d="M35 55 L65 55 L70 95 L30 95 Z" fill="white"/><circle cx="40" cy="25" r="5" fill="black"/><circle id="right-eye" cx="60" cy="25" r="5" fill="black"/><path d="M40 42 Q50 48 60 42" fill="none" stroke="black" stroke-width="2"/></svg>`;
+        if (char === 'ROBOT') return `<svg viewBox="0 0 100 100" width="80" height="100"><rect x="30" y="20" width="40" height="50" fill="silver"/><rect x="35" y="25" width="30" height="20" fill="cyan"/><line x1="50" y1="70" x2="50" y2="90" stroke="silver" stroke-width="6"/><circle cx="50" cy="90" r="10" fill="gray"/></svg>`;
+        if (char === 'FLOWER') return `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M50 50 Q30 20 50 10 Q70 20 50 50 Q80 30 90 50 Q80 70 50 50 Q70 80 50 90 Q30 80 50 50 Q20 70 10 50 Q20 30 50 50" fill="yellow"/><circle cx="50" cy="50" r="15" fill="white"/><circle cx="45" cy="45" r="2" fill="black"/><circle cx="55" cy="45" r="2" fill="black"/><path d="M45 55 Q50 60 55 55" fill="none" stroke="black"/></svg>`;
+        if (char === 'KNIGHT') return `<svg viewBox="0 0 100 100" width="80" height="100"><path d="M20 30 L80 30 L65 90 L35 90 Z" fill="#c0c0c0" stroke="#808080" stroke-width="3"/><path d="M35 15 L65 15 L75 30 L25 30 Z" fill="#a9a9a9"/><path d="M45 40 L55 40 L55 65 L45 65 Z" fill="#000"/><path d="M35 40 L65 40" stroke="#000" stroke-width="4"/><circle id="knight-eye" cx="50" cy="50" r="4" fill="var(--ui-cyan)" filter="drop-shadow(0 0 5px var(--ui-cyan))"/><path d="M50 15 Q40 -5 20 10" fill="none" stroke="#ff0000" stroke-width="8" stroke-linecap="round"/></svg>`;
+    }
 
     function initInventory() {
         inventory.length = 0;
@@ -460,24 +459,33 @@
     }
     initInventory();
 
-    document.getElementById('btn-gameover').addEventListener('click', resetGame);
-    document.getElementById('btn-victory').addEventListener('click', resetGame);
-
     function startGame(character) {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         currentCharacter = character;
         document.getElementById('game-screen').className = currentCharacter;
+        
         if (character === 'DUMMY') {
             maxHp = 99; enemyHp = 200; maxEnemyHp = 200; dmgMult = 0.8;
             diagText.innerHTML = "* A magical training dummy brought to life.<br>* It wants to prove it's more than a punching bag.";
+        } else if (character === 'SPIDER') {
+            maxHp = 92; enemyHp = 250; maxEnemyHp = 250; dmgMult = 0.9;
+            diagText.innerHTML = "* The spider offers you a pastry.";
         } else if (character === 'SKELETON') {
             maxHp = 92; enemyHp = 300; maxEnemyHp = 300; dmgMult = 1.0;
             diagText.innerHTML = "* A lazy, joke-telling skeleton.<br>* He promised to take it easy, but his glowing eye says otherwise.";
+        } else if (character === 'ROBOT') {
+            maxHp = 92; enemyHp = 400; maxEnemyHp = 400; dmgMult = 1.2;
+            diagText.innerHTML = "* The robot strikes a dramatic pose.";
         } else if (character === 'KNIGHT') {
             maxHp = 50; enemyHp = 500; maxEnemyHp = 500; dmgMult = 1.5;
             diagText.innerHTML = "* The Captain of the Guard blocks the way!<br>* Driven by fierce determination, she will protect her realm.";
+        } else if (character === 'FLOWER') {
+            maxHp = 50; enemyHp = 600; maxEnemyHp = 600; dmgMult = 1.8;
+            diagText.innerHTML = "* The flower smiles at you.";
         }
+
         hp = maxHp;
-        enemySprite.innerHTML = CHARACTER_SVGS[character];
+        enemySprite.innerHTML = getCharacterSVG(character);
         mainMenuOverlay.style.display = 'none';
         backToMenuBtn.style.display = 'block';
         muteBtn.style.display = 'block';
@@ -496,9 +504,8 @@
     function animateRules() {
         const rules = [
             "* See that heart? That is your SOUL.",
-            "* It's the very culmination of your being!",
-            "* Move it with the joystick to dodge attacks.",
-            "* Use FIGHT to attack, or ITEM to heal.",
+            "* Use ARROWS or JOYSTICK to move.",
+            "* Press Z or ENTER to select.",
             "* Stay determined!"
         ];
         let step = 0;
@@ -527,6 +534,7 @@
         if (rulesTimer) clearTimeout(rulesTimer);
         skipBtn.style.display = 'none';
         soul.style.transform = 'scale(1.1)';
+        soul.style.display = 'none';
         diagText.innerHTML = "* The battle begins!";
         setTimeout(() => {
             state = 'MENU';
@@ -538,7 +546,7 @@
     const allPatterns = {
         'DUMMY': [
             {
-                minPhase: 1, maxPhase: 3,
+                minPhase: 1, maxPhase: 4,
                 fn: (t, phase) => {
                     setSoulMode(false);
                     let freq = Math.floor(Math.max(15, 45 - phase * 8));
@@ -547,7 +555,7 @@
                 }
             },
             {
-                minPhase: 1, maxPhase: 3,
+                minPhase: 1, maxPhase: 4,
                 fn: (t, phase) => {
                     setSoulMode(true);
                     let freq = Math.floor(Math.max(20, 50 - phase * 8));
@@ -559,13 +567,31 @@
                 }
             },
             {
-                minPhase: 2, maxPhase: 3,
+                minPhase: 2, maxPhase: 4,
                 fn: (t, phase) => {
                     setSoulMode(false);
                     let bFreq = Math.floor(Math.max(30, 80 - phase * 10));
                     let pFreq = Math.floor(Math.max(25, 60 - phase * 10));
                     if (t % bFreq === 0) spawnBlaster('v', soulPos.x + 8);
                     if (t % pFreq === 0) spawnProjectile('bone', 310, 150, 15, 30, -5 - phase * 0.5, 0);
+                }
+            }
+        ],
+        'SPIDER': [
+            {
+                minPhase: 1, maxPhase: 4,
+                fn: (t, phase) => {
+                    setSoulMode(false);
+                    if (t % 25 === 0) spawnProjectile('bone', 310, Math.random() * 180, 25, 10, -5, 0);
+                    if (t % 35 === 0) spawnProjectile('bone', -20, Math.random() * 180, 25, 10, 5, 0);
+                }
+            },
+            {
+                minPhase: 1, maxPhase: 4,
+                fn: (t, phase) => {
+                    setSoulMode(true);
+                    if (t % 40 === 0) spawnProjectile('bone', 310, 150, 15, 50, -6, 0);
+                    if (t % 50 === 0) spawnProjectile('bone', -20, 170, 15, 30, 6, 0);
                 }
             }
         ],
@@ -643,6 +669,16 @@
                 }
             }
         ],
+        'ROBOT': [
+            {
+                minPhase: 1, maxPhase: 4,
+                fn: (t, phase) => {
+                    setSoulMode(false);
+                    if (t % 60 === 0) spawnBlaster('h', Math.random() * 180 + 10);
+                    if (t % 20 === 0) spawnProjectile(Math.random() > 0.5 ? 'bone blue' : 'bone orange', 310, Math.random() * 180, 15, 15, -7, 0);
+                }
+            }
+        ],
         'KNIGHT': [
             {
                 minPhase: 1, maxPhase: 3,
@@ -674,6 +710,21 @@
                         spawnProjectile('bone', 310, 200 - h, 15, h, -speed, 0);
                     }
                     if (t % (freq * 2) === freq) spawnBlaster('h', 70);
+                }
+            }
+        ],
+        'FLOWER': [
+            {
+                minPhase: 1, maxPhase: 4,
+                fn: (t, phase) => {
+                    setSoulMode(false);
+                    if (t % 15 === 0) {
+                        const angle = (t * 0.1);
+                        spawnProjectile('bone', 150 + Math.cos(angle)*150, 100 + Math.sin(angle)*100, 10, 10, -Math.cos(angle)*3, -Math.sin(angle)*3);
+                    }
+                    if (t % 90 === 0) {
+                        spawnBlaster('v', soulPos.x + 8);
+                    }
                 }
             }
         ]
@@ -773,6 +824,8 @@
         enemyHp -= damage;
         let phaseChanged = false;
         let fakeDeath = false;
+        
+        // Phase logic handles health thresholds per character
         if (currentCharacter === 'SKELETON') {
             if (enemyHp <= 0 && currentPhase < 4) {
                 enemyHp = 150; currentPhase = 4; turnCount = 0; fakeDeath = true;
@@ -785,11 +838,14 @@
                 document.getElementById('game-screen').className = 'SKELETON phase-3';
             }
         } else if (currentCharacter === 'DUMMY') {
-            if (enemyHp <= 120 && enemyHp > 60 && currentPhase === 1) {
-                currentPhase = 2; turnCount = 0; phaseChanged = true;
-            } else if (enemyHp <= 60 && enemyHp > 0 && currentPhase === 2) {
-                currentPhase = 3; turnCount = 0; phaseChanged = true;
-            }
+            if (enemyHp <= 120 && enemyHp > 60 && currentPhase === 1) { currentPhase = 2; turnCount = 0; phaseChanged = true; }
+            else if (enemyHp <= 60 && enemyHp > 0 && currentPhase === 2) { currentPhase = 3; turnCount = 0; phaseChanged = true; }
+        } else if (currentCharacter === 'SPIDER') {
+            if (enemyHp <= 150 && enemyHp > 75 && currentPhase === 1) { currentPhase = 2; turnCount = 0; phaseChanged = true; }
+            else if (enemyHp <= 75 && enemyHp > 0 && currentPhase === 2) { currentPhase = 3; turnCount = 0; phaseChanged = true; }
+        } else if (currentCharacter === 'ROBOT') {
+            if (enemyHp <= 250 && enemyHp > 125 && currentPhase === 1) { currentPhase = 2; turnCount = 0; phaseChanged = true; }
+            else if (enemyHp <= 125 && enemyHp > 0 && currentPhase === 2) { currentPhase = 3; turnCount = 0; phaseChanged = true; }
         } else if (currentCharacter === 'KNIGHT') {
             if (enemyHp <= 300 && enemyHp > 150 && currentPhase === 1) {
                 currentPhase = 2; turnCount = 0; phaseChanged = true;
@@ -798,10 +854,15 @@
                 currentPhase = 3; turnCount = 0; phaseChanged = true;
                 document.getElementById('game-screen').className = 'KNIGHT phase-3';
             }
+        } else if (currentCharacter === 'FLOWER') {
+            if (enemyHp <= 400 && enemyHp > 200 && currentPhase === 1) { currentPhase = 2; turnCount = 0; phaseChanged = true; }
+            else if (enemyHp <= 200 && enemyHp > 0 && currentPhase === 2) { currentPhase = 3; turnCount = 0; phaseChanged = true; }
         }
+        
         enemyHpFill.style.width = Math.max(0, (enemyHp/maxEnemyHp)*100) + '%';
         document.getElementById('flash').style.opacity = 1;
         setTimeout(() => document.getElementById('flash').style.opacity = 0, 50);
+        
         if (enemyHp <= 0 && (currentPhase === 4 || currentCharacter !== 'SKELETON')) {
             triggerVictory();
         } else {
@@ -882,16 +943,12 @@
 
     function renderActMenu() {
         actMenu.innerHTML = '';
-        const acts = ['Check', 'Talk', 'Joke', 'Cheer'];
-        acts.forEach((act) => {
-            const div = document.createElement('div');
-            div.className = 'item-option'; div.innerText = act;
-            div.onclick = () => performAct(act); actMenu.appendChild(div);
+        const acts = ['Check', 'Back'];
+        acts.forEach(act => {
+            const div = document.createElement('div'); div.className = 'item-option'; div.innerText = act;
+            div.onclick = () => { if(act === 'Back') cancelSubMenu(); else { diagText.style.display = 'block'; diagText.innerHTML = "* The opponent stares blankly."; actMenu.style.display = 'none'; state = 'MENU'; } };
+            actMenu.appendChild(div);
         });
-        const backBtn = document.createElement('div');
-        backBtn.className = 'item-option'; backBtn.style.color = '#aaa';
-        backBtn.innerText = 'Back'; backBtn.onclick = cancelSubMenu;
-        actMenu.appendChild(backBtn);
     }
     
     function cancelSubMenu() {
@@ -899,21 +956,6 @@
         playSoundEffect('select');
         itemMenu.style.display = 'none'; actMenu.style.display = 'none';
         diagText.style.display = 'block'; state = 'MENU'; updateMenuVisuals();
-    }
-
-    function performAct(actName) {
-        if (state !== 'SUBMENU') return;
-        state = 'WAITING';
-        playSoundEffect('select');
-        actMenu.style.display = 'none'; diagText.style.display = 'block';
-        if (actName === 'Check') {
-            if (currentCharacter === 'DUMMY') diagText.innerHTML = `* DUMMY - ATK 1 DEF 1<br>* A cotton heart and a button eye.`;
-            else if (currentCharacter === 'SKELETON') diagText.innerHTML = `* SKELETON - ATK 1 DEF 1<br>* The easiest enemy. Can only deal 1 damage.`;
-            else diagText.innerHTML = `* KNIGHT - ATK 99 DEF 50<br>* The heroine appears.`;
-        } else {
-            diagText.innerHTML = `* You tried to ${actName}... but nothing happened.`;
-        }
-        setTimeout(() => { diagText.innerHTML = "* The enemy waits for your next move."; state = 'MENU'; }, 2000); 
     }
 
     function startDodge() {
@@ -1044,7 +1086,7 @@
     function triggerGameOver() {
         gameOver = true;
         state = 'GAMEOVER';
-        gameOverOverlay.style.display = 'flex';
+        document.getElementById('game-over-overlay').style.display = 'flex';
         controls.style.display = 'none';
     }
 
@@ -1052,7 +1094,7 @@
         gameWon = true; state = 'VICTORY';
         enemySprite.style.opacity = '0';
         setTimeout(() => {
-            victoryOverlay.style.display = 'flex';
+            document.getElementById('victory-overlay').style.display = 'flex';
             controls.style.display = 'none';
             soul.style.display = 'none';
         }, 1200);
@@ -1066,7 +1108,7 @@
         document.getElementById('game-screen').className = '';
         mainMenuOverlay.style.display = 'flex'; backToMenuBtn.style.display = 'none'; muteBtn.style.display = 'none'; skipBtn.style.display = 'none';
         initInventory(); updateHPDisplay(); enemyHpFill.style.width = '100%'; enemySprite.style.opacity = '1';
-        gameOverOverlay.style.display = 'none'; victoryOverlay.style.display = 'none';
+        document.getElementById('game-over-overlay').style.display = 'none'; document.getElementById('victory-overlay').style.display = 'none';
         itemMenu.style.display = 'none'; actMenu.style.display = 'none'; attackGame.style.display = 'none';
         diagText.style.display = 'block'; diagText.innerHTML = "* The battle begins anew.";
         controls.style.display = 'none'; soul.style.display = 'none'; soul.style.opacity = '1';
